@@ -48,7 +48,6 @@ SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
 SQLALCHEMY_RECORD_QUERIES = True
 
 app = Flask(__name__)
-db = SQLAlchemy(app)
 app.debug = DEBUG
 app.secret_key = SECRET_KEY
 app.port = PORT
@@ -56,6 +55,9 @@ app.host = '0.0.0.0'
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 
 #DATABASE
+
+db = SQLAlchemy(app)
+db.session.execute('PRAGMA foreign_keys=ON;')
 
 STATUS = {
 	'available': 0,
@@ -114,6 +116,7 @@ class Admin(User):
 	__tablename__ = 'admin'
 	id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key = True)
 	work_email = db.Column(db.String(120), unique = True, index = True)
+	approved_application = db.relationship('Application')
 
 	def __init__(self, name, email, work_email):
 		super(Admin, self).__init__(name, email)
@@ -170,29 +173,34 @@ class Application(db.Model):
 	__tablename__ = 'application'
 	id = db.Column(db.Integer, primary_key = True)
 	uid = db.Column(db.Integer, db.ForeignKey('user.id'))
-	eid = db.Column(db.Integer, db.ForeignKey('equipment.id'))
+	iid = db.Column(db.Integer, db.ForeignKey('item.id'))
 	timestamp = db.Column(db.DateTime)
 	borrow_time = db.Column(db.DateTime)
 	return_time = db.Column(db.DateTime)
-	type = db.Column(db.String(50))
+	approval = db.relationship('Record', uselist = False, backref='approval')
 
-	__mapper_args__ = {
-		'polymorphic_identity': 'application',
-		'polymorphic_on':type,
-	}
+	def __init__(self, uid, iid, borrow_time, return_time):
+		self.uid = uid
+		self.iid = iid
+		self.borrow_time = borrow_time
+		self.return_time = return_time
+		self.timestamp = datetime.utcnow()
+
 
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
 
-class Record(Application):
+class Record(db.Model):
 	__tablename__ = 'record'
-	id = db.Column(db.Integer, db.ForeignKey('application.id'), primary_key = True)
-	approved_by = db.Column(db.Integer, db.ForeignKey('admin.id'))
+	id = db.Column(db.Integer, primary_key = True)
+	aid = db.Column(db.Integer, db.ForeignKey('application.id'), nullable = False)
+	approved_by = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable = False)
 	approved_time = db.Column(db.DateTime)
 
-	__mapper_args__ = {
-		'polymorphic_identity': 'record',
-	}
+	def __init__(self, aid, approved_by, approved_time):
+		self.aid = aid
+		self.approved_by = approved_by
+		self.approved_time = approved_time
 
 	def __repr__(self):
 		return '<Record %r>' %(self.id)
@@ -234,6 +242,11 @@ def index():
 #  ##     ##  #######  ##    ## 
 
 
+# u = User('yiwen', 'tiotaocn@gmail.com')
+# a = Admin('yike', 'yiwen@nus.edu.sg', 'admin@tembusupac.org')
+# db.session.add(a)
+# db.session.add(u)
+
 
 # e0 = Equipment('Chair', None)
 # e1 = Equipment('YAMAHA', CATEGORY['amp'])
@@ -246,10 +259,27 @@ def index():
 # db.session.add(i0)
 # db.session.add(i1)
 # db.session.commit()
+
+# a0 = Application(1, 2, datetime.utcnow(), datetime.utcnow())
+# db.session.add(a0)
+# db.session.commit()
+
+# r0 = Record(aid=1, approved_by=2, approved_time=datetime.utcnow())
+# db.session.add(r0)
+# db.session.commit()
+
+# r0 = Record(aid=1, approved_by=1, approved_time=datetime.utcnow())
+# db.session.add(r0)
+# db.session.commit()
+
+
 print User.query.all()
 print Equipment.query.all()
 print Item.query.all()
-
-app.run(debug=True)
+print Application.query.all()
+print Application.query.all()[0].approval
+print Record.query.all()
+print Admin.query.all()[0].approved_application
+#app.run(debug=True)
 
 

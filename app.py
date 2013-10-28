@@ -10,6 +10,8 @@ import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime
+# Array String conversion
+import ast
 
 #   ######   #######  ##    ##  ######  ########    ###    ##    ## ######## 
 #  ##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    
@@ -58,6 +60,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 
 db = SQLAlchemy(app)
 db.session.execute('PRAGMA foreign_keys=ON;')
+db.session.commit()
 
 STATUS = {
 	'available': 0,
@@ -116,7 +119,7 @@ class Admin(User):
 	__tablename__ = 'admin'
 	id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key = True)
 	work_email = db.Column(db.String(120), unique = True, index = True)
-	approved_application = db.relationship('Application')
+	approval = db.relationship('Approval', backref='approver')
 
 	def __init__(self, name, email, work_email):
 		super(Admin, self).__init__(name, email)
@@ -136,10 +139,21 @@ class Equipment(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
 	name = db.Column(db.String(120), unique = True, index = True)
 	category = db.Column(db.SmallInteger, nullable = False, default = CATEGORY['general'])
+	items = db.relationship('Item', backref='equipment')
 
 	def __init__(self, name, category):
 		self.name = name
 		self.category = category
+
+	def numOfItems(self):
+		return len(self.items)
+
+	def availableItems(self):
+		available_items = []
+		for i in self.items:
+			if i.status == STATUS['available']:
+				available_items.append(i)
+		return available_items
 
 	def __repr__(self):
 		return '<Equipment > %r' %(self.name)
@@ -173,24 +187,44 @@ class Application(db.Model):
 	__tablename__ = 'application'
 	id = db.Column(db.Integer, primary_key = True)
 	uid = db.Column(db.Integer, db.ForeignKey('user.id'))
-	iid = db.Column(db.Integer, db.ForeignKey('item.id'))
+	iids = db.Column(db.String(120), nullable = False, default = '[]')
 	timestamp = db.Column(db.DateTime)
 	borrow_time = db.Column(db.DateTime)
 	return_time = db.Column(db.DateTime)
-	approval = db.relationship('Record', uselist = False, backref='approval')
+	approval = db.relationship('Approval', uselist = False, backref='application')
 
-	def __init__(self, uid, iid, borrow_time, return_time):
-		self.uid = uid
-		self.iid = iid
-		self.borrow_time = borrow_time
-		self.return_time = return_time
-		self.timestamp = datetime.utcnow()
+	def __init__(self, uid, iids, borrow_time, return_time):
+		# error check for invalid iids
+		if iidsIfValid(iids):
+			self.uid = uid
+			self.iids = iids
+			self.borrow_time = borrow_time
+			self.return_time = return_time
+			self.timestamp = datetime.utcnow()
+		else:
+			return 'Invalid iids'
 
+	# check if iids is valid
+	def iidsIfValid(self, iids):
+		items_id_array = ast.literal_eval(iids)
+		for i in items_id_array:
+			if Item.query.filter_by(id=i).first() is None:
+				return False
+		return True
+
+	# get list of items being borrowed
+	def getItems(self):
+		items_id_array = ast.literal_eval(self.iids)
+		items_array = []
+		for i in items_id_array:
+			item = Item.query.filter_by(id=i).first()
+			items_array.append(item)
+		return items_array
 
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
 
-class Record(db.Model):
+class Approval(db.Model):
 	__tablename__ = 'record'
 	id = db.Column(db.Integer, primary_key = True)
 	aid = db.Column(db.Integer, db.ForeignKey('application.id'), nullable = False)
@@ -203,7 +237,7 @@ class Record(db.Model):
 		self.approved_time = approved_time
 
 	def __repr__(self):
-		return '<Record %r>' %(self.id)
+		return '<Approval %r>' %(self.id)
 
 
 
@@ -218,6 +252,62 @@ class Record(db.Model):
 #  ##    ## ##     ## ##   ###    ##    ##    ##  ##     ## ##       ##       ##       ##    ##  
 #   ######   #######  ##    ##    ##    ##     ##  #######  ######## ######## ######## ##     ##
 
+#ITEM
+def createItem(json):
+	i = Item(json['name'], json['category'], json['purchase_date'])
+	db.session.add(i)
+	db.session.commit()
+	return Item.query.filter_by(name=json['name']).first()
+
+def deleteItem(id):
+	i = Item.query.get(id)
+	if i is not None:
+		db.session.delete(i)
+		db.session.commit()
+
+def EditItem(id, json):
+	i = Item.query.get(id)
+	if i is not None:
+		i.name = json['name']
+		i.category = json['category']
+		i.purchase_date = json['purchase_date']
+		db.session.commit()
+
+def copyItem(id):
+	i = Item.query.get(id)
+	if i is not None:
+		duplicate = Item(i.name, i.category, i.purchase_date)
+		db.session.add(duplicate)
+		db.session.commit()
+
+def changeItemStatus(id, status):
+	i = Item.query.get(id)
+	if i is not None:
+		i.status = status
+		db.session.commit()
+
+#User
+
+# json for application making
+# {
+# 	'uid' : 1
+#	'items': '[1, 2, 3]',
+# 	'borrow_time': datetime.(2013, 10, 28, 13, 12, 45, 931000),
+# 	'return_time': datetime.(2013, 10, 28, 13, 12, 45, 931000)
+# }
+
+def makeApplication(json):
+	a = Application(json['uid'], json['items'], json['borrow_time'], json['return_time'])
+	if a == 'Invalid iids':
+		return a
+	else:
+		db.session.add(a)
+		db.session.commit()
+		a = Application.query.\
+			filter_by(iids = json['iids'], uid = json['uid']).first()
+		return a
+
+#
 
 #  ##     ## #### ######## ##      ## 
 #  ##     ##  ##  ##       ##  ##  ## 
@@ -246,7 +336,7 @@ def index():
 # a = Admin('yike', 'yiwen@nus.edu.sg', 'admin@tembusupac.org')
 # db.session.add(a)
 # db.session.add(u)
-
+# db.session.commit()
 
 # e0 = Equipment('Chair', None)
 # e1 = Equipment('YAMAHA', CATEGORY['amp'])
@@ -260,7 +350,7 @@ def index():
 # db.session.add(i1)
 # db.session.commit()
 
-# a0 = Application(1, 2, datetime.utcnow(), datetime.utcnow())
+# a0 = Application(1, '[1, 2]', datetime.utcnow(), datetime.utcnow())
 # db.session.add(a0)
 # db.session.commit()
 
@@ -268,7 +358,7 @@ def index():
 # db.session.add(r0)
 # db.session.commit()
 
-# r0 = Record(aid=1, approved_by=1, approved_time=datetime.utcnow())
+# r0 = Record(aid=1, approved_by=5, approved_time=datetime.utcnow())
 # db.session.add(r0)
 # db.session.commit()
 
@@ -279,7 +369,9 @@ print Item.query.all()
 print Application.query.all()
 print Application.query.all()[0].approval
 print Record.query.all()
-print Admin.query.all()[0].approved_application
+print Admin.query.all()[0].approved_record[0].application
+# db.session.execute('PRAGMA foreign_keys=ON;')
+# db.session.commit()
 #app.run(debug=True)
 
 

@@ -158,7 +158,6 @@ class Equipment(db.Model):
 	def __repr__(self):
 		return '<Equipment > %r' %(self.name)
 
-
 class Item(db.Model):
 	__tablename__ = 'item'
 	id = db.Column(db.Integer, primary_key=True)
@@ -183,43 +182,42 @@ class Item(db.Model):
 		return '<Item %r>' %(reprs,)
 
 
+class ItemApp(db.Model)
+	__tablename__ = 'itemapp'
+	aid = db.Column(db.Integer, ForeignKey('application.id'), primary_key = True)
+	iid = db.Column(db.Integer, ForiegnKey('item.id'), primary_key = True)
+	items = db.relationship('Item', backref='item_app')
+
+	def _init_(self, iid, aid):
+		self.aid = aid
+		self.iid = iid
+
+	def __repr__(self):
+		return '<ItemApp %r>' %((self.iid, self.aid))
+
 class Application(db.Model):
 	__tablename__ = 'application'
 	id = db.Column(db.Integer, primary_key = True)
 	uid = db.Column(db.Integer, db.ForeignKey('user.id'))
-	iids = db.Column(db.String(120), nullable = False, default = '[]')
 	timestamp = db.Column(db.DateTime)
 	borrow_time = db.Column(db.DateTime)
 	return_time = db.Column(db.DateTime)
 	approval = db.relationship('Approval', uselist = False, backref='application')
+	item_app = db.relationship('ItemApp', backref='application')
 
-	def __init__(self, uid, iids, borrow_time, return_time):
+	def __init__(self, uid, borrow_time, return_time):
 		# error check for invalid iids
-		if iidsIfValid(iids):
-			self.uid = uid
-			self.iids = iids
-			self.borrow_time = borrow_time
-			self.return_time = return_time
-			self.timestamp = datetime.utcnow()
+		self.uid = uid
+		self.borrow_time = borrow_time
+		self.return_time = return_time
+		self.timestamp = datetime.utcnow()
+
+	# check if application is approved
+	def isApproved(self):
+		if self.approval is not None:
+			return True
 		else:
-			return 'Invalid iids'
-
-	# check if iids is valid
-	def iidsIfValid(self, iids):
-		items_id_array = ast.literal_eval(iids)
-		for i in items_id_array:
-			if Item.query.filter_by(id=i).first() is None:
-				return False
-		return True
-
-	# get list of items being borrowed
-	def getItems(self):
-		items_id_array = ast.literal_eval(self.iids)
-		items_array = []
-		for i in items_id_array:
-			item = Item.query.filter_by(id=i).first()
-			items_array.append(item)
-		return items_array
+			return False
 
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
@@ -231,10 +229,10 @@ class Approval(db.Model):
 	approved_by = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable = False)
 	approved_time = db.Column(db.DateTime)
 
-	def __init__(self, aid, approved_by, approved_time):
+	def __init__(self, aid, approved_by):
 		self.aid = aid
 		self.approved_by = approved_by
-		self.approved_time = approved_time
+		self.approved_time = datetime.utcnow()
 
 	def __repr__(self):
 		return '<Approval %r>' %(self.id)
@@ -252,12 +250,12 @@ class Approval(db.Model):
 #  ##    ## ##     ## ##   ###    ##    ##    ##  ##     ## ##       ##       ##       ##    ##  
 #   ######   #######  ##    ##    ##    ##     ##  #######  ######## ######## ######## ##     ##
 
-#ITEM
+# ITEM
 def createItem(json):
 	i = Item(json['name'], json['category'], json['purchase_date'])
 	db.session.add(i)
 	db.session.commit()
-	return Item.query.filter_by(name=json['name']).first()
+	return i
 
 def deleteItem(id):
 	i = Item.query.get(id)
@@ -265,7 +263,7 @@ def deleteItem(id):
 		db.session.delete(i)
 		db.session.commit()
 
-def EditItem(id, json):
+def editItem(id, json):
 	i = Item.query.get(id)
 	if i is not None:
 		i.name = json['name']
@@ -286,28 +284,59 @@ def changeItemStatus(id, status):
 		i.status = status
 		db.session.commit()
 
-#User
+# APPLICATION
 
 # json for application making
 # {
 # 	'uid' : 1
-#	'items': '[1, 2, 3]',
+#	'items': [1, 2, 3],
 # 	'borrow_time': datetime.(2013, 10, 28, 13, 12, 45, 931000),
 # 	'return_time': datetime.(2013, 10, 28, 13, 12, 45, 931000)
 # }
 
 def makeApplication(json):
-	a = Application(json['uid'], json['items'], json['borrow_time'], json['return_time'])
-	if a == 'Invalid iids':
-		return a
-	else:
-		db.session.add(a)
-		db.session.commit()
-		a = Application.query.\
-			filter_by(iids = json['iids'], uid = json['uid']).first()
-		return a
+	a = Application(json['uid'], json['borrow_time'], json['return_time'])
+	db.session.add(a)
+	db.session.commit()
+	#create association table
+	for i in json['items']:
+		item_app = ItemApp(i, a.id)
+		db.session.add(item_app)
 
-#
+	db.session.commit()	
+	return a
+
+def editApplication(id, json):
+	a = Application.query.get(id)
+	if a is not None:
+		a.borrow_time = json['borrow_time']
+		a.return_time = json['return_time']
+		for r in a.itemapp:
+			db.session.delete(r)
+		for i in json['items']:
+			item_app = ItemApp(i, a.id)
+			db.session.add(item_app)
+		db.session.commit()
+
+def deleteApplication(id):
+	a = Application.query.get(id)
+	if a is not None:
+		db.session.delete(a)
+		db.session.commit()
+
+#APPROVAL
+def approveApplication(admin_id, app_id):
+	a = Approval(app_id, admin_id)
+	db.session.add(a)
+	db.session.commit()
+
+def disapproveApplication(app_id):
+	a = Application.query.get(app_id).approval
+	if a is not None:
+		db.session.delete(a)
+		db.session.commit()
+
+
 
 #  ##     ## #### ######## ##      ## 
 #  ##     ##  ##  ##       ##  ##  ## 

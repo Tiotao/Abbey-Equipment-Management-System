@@ -9,7 +9,7 @@
 import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 # Array String conversion
 import ast
 
@@ -193,7 +193,8 @@ class ItemApp(db.Model):
 		self.iid = iid
 
 	def __repr__(self):
-		return '<ItemApp %r>' %((self.iid, self.aid))
+		reprs = (self.iid, self.aid)
+		return '<ItemApp %r>' %(reprs,)
 
 class Application(db.Model):
 	__tablename__ = 'application'
@@ -283,6 +284,19 @@ def changeItemStatus(id, status):
 		i.status = status
 		db.session.commit()
 
+def itemIfAvailable(id, borrow_time, return_time):
+	i = Item.query.get(id)
+	item_app = i.item_app
+	for ia in item_app:
+		app = ia.application
+		if app is not None:
+			after = (borrow_time - app.return_time).days > 0 and (borrow_time - app.borrow_time).days > 0
+			before = (app.borrow_time - return_time).days > 0 and (app.borrow_time - borrow_time).days > 0
+			if not (before or after):
+				return False
+	return True
+			
+
 # APPLICATION
 
 # json for application making
@@ -365,4 +379,3 @@ def index():
 
 
 #app.run(debug=True)
-

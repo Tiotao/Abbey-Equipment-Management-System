@@ -161,7 +161,7 @@ class Equipment(db.Model):
 class Item(db.Model):
 	__tablename__ = 'item'
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(120), unique = True, index = True)
+	name = db.Column(db.String(120), index = True)
 	eid = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=False)
 	purchase_date = db.Column(db.DateTime)
 	status = db.Column(db.SmallInteger, nullable = False, default = STATUS['available'])
@@ -182,13 +182,13 @@ class Item(db.Model):
 		return '<Item %r>' %(reprs,)
 
 
-class ItemApp(db.Model)
+class ItemApp(db.Model):
 	__tablename__ = 'itemapp'
-	aid = db.Column(db.Integer, ForeignKey('application.id'), primary_key = True)
-	iid = db.Column(db.Integer, ForiegnKey('item.id'), primary_key = True)
+	aid = db.Column(db.Integer, db.ForeignKey('application.id', ondelete='CASCADE'), primary_key = True)
+	iid = db.Column(db.Integer, db.ForeignKey('item.id'), primary_key = True)
 	items = db.relationship('Item', backref='item_app')
 
-	def _init_(self, iid, aid):
+	def __init__(self, iid, aid):
 		self.aid = aid
 		self.iid = iid
 
@@ -203,7 +203,7 @@ class Application(db.Model):
 	borrow_time = db.Column(db.DateTime)
 	return_time = db.Column(db.DateTime)
 	approval = db.relationship('Approval', uselist = False, backref='application')
-	item_app = db.relationship('ItemApp', backref='application')
+	item_app = db.relationship('ItemApp', backref='application', passive_deletes=True)
 
 	def __init__(self, uid, borrow_time, return_time):
 		# error check for invalid iids
@@ -223,9 +223,8 @@ class Application(db.Model):
 		return '<Application %r>' %(self.id)
 
 class Approval(db.Model):
-	__tablename__ = 'record'
-	id = db.Column(db.Integer, primary_key = True)
-	aid = db.Column(db.Integer, db.ForeignKey('application.id'), nullable = False)
+	__tablename__ = 'approval'
+	aid = db.Column(db.Integer, db.ForeignKey('application.id'), nullable = False, primary_key=True)
 	approved_by = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable = False)
 	approved_time = db.Column(db.DateTime)
 
@@ -235,7 +234,7 @@ class Approval(db.Model):
 		self.approved_time = datetime.utcnow()
 
 	def __repr__(self):
-		return '<Approval %r>' %(self.id)
+		return '<Approval %r>' %(self.aid)
 
 
 
@@ -311,16 +310,19 @@ def editApplication(id, json):
 	if a is not None:
 		a.borrow_time = json['borrow_time']
 		a.return_time = json['return_time']
-		for r in a.itemapp:
+		for r in a.item_app:
 			db.session.delete(r)
 		for i in json['items']:
 			item_app = ItemApp(i, a.id)
 			db.session.add(item_app)
 		db.session.commit()
+	return a
 
 def deleteApplication(id):
 	a = Application.query.get(id)
 	if a is not None:
+		for r in a.item_app:
+			db.session.delete(r)
 		db.session.delete(a)
 		db.session.commit()
 
@@ -361,46 +363,6 @@ def index():
 #  ##     ##  #######  ##    ## 
 
 
-# u = User('yiwen', 'tiotaocn@gmail.com')
-# a = Admin('yike', 'yiwen@nus.edu.sg', 'admin@tembusupac.org')
-# db.session.add(a)
-# db.session.add(u)
-# db.session.commit()
 
-# e0 = Equipment('Chair', None)
-# e1 = Equipment('YAMAHA', CATEGORY['amp'])
-# db.session.add(e0)
-# db.session.add(e1)
-# db.session.commit()
-
-# i0 = Item('SM57', CATEGORY['mic'], datetime.utcnow())
-# i1 = Item('YAMAHA', CATEGORY['amp'], datetime.utcnow())
-# db.session.add(i0)
-# db.session.add(i1)
-# db.session.commit()
-
-# a0 = Application(1, '[1, 2]', datetime.utcnow(), datetime.utcnow())
-# db.session.add(a0)
-# db.session.commit()
-
-# r0 = Record(aid=1, approved_by=2, approved_time=datetime.utcnow())
-# db.session.add(r0)
-# db.session.commit()
-
-# r0 = Record(aid=1, approved_by=5, approved_time=datetime.utcnow())
-# db.session.add(r0)
-# db.session.commit()
-
-
-print User.query.all()
-print Equipment.query.all()
-print Item.query.all()
-print Application.query.all()
-print Application.query.all()[0].approval
-print Record.query.all()
-print Admin.query.all()[0].approved_record[0].application
-# db.session.execute('PRAGMA foreign_keys=ON;')
-# db.session.commit()
 #app.run(debug=True)
-
 

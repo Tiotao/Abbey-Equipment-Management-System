@@ -177,6 +177,14 @@ class Item(db.Model):
 		self.purchase_date = purchase_date
 		self.category = e.category
 
+	def printStatus(self):
+		if self.status == 0:
+			return 'Available'
+		if (self.status == 1):
+			return 'Borrowed'
+		else:
+			return 'Unavailable'
+
 	def __repr__(self):
 		reprs = (self.name, self.id)
 		return '<Item %r>' %(reprs,)
@@ -226,6 +234,9 @@ class Application(db.Model):
 		for ia in itemapp:
 			items.append(ia.items)
 		return items
+
+	def displayTimestamp(self):
+		return self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
@@ -382,9 +393,10 @@ def disapproveApplication(app_id):
 @app.route('/index', methods=['GET', 'POST'])
 def index():
 	all_applications = Application.query.all()
-	return render_template("index.html", application = all_applications)
+	all_items = Item.query.all()
+	return render_template("index.html", all_applications = all_applications, all_items = all_items)
 
-@app.route('/equipment_request/available_items', methods=['GET', 'POST'])
+@app.route('/equipment/available_items', methods=['GET', 'POST'])
 def available_items():
 	borrow_time = request.form['borrow_time']
 	return_time = request.form['return_time']
@@ -396,7 +408,7 @@ def available_items():
 	available_items = availabeItems(borrow_time_object, return_time_object)
 	return render_template("selected.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
 
-@app.route('/equipment_request/application', methods=['GET', 'POST'])
+@app.route('/equipment/application', methods=['GET', 'POST'])
 def make_application():
 	selected_items = request.form.getlist('selected_items')
 	print selected_items
@@ -410,6 +422,11 @@ def make_application():
 	items = application.getItems()
 	return render_template("success.html", application = application, items = items)
 
+# @app.route('item/add', methods=['GET', 'POST'])
+# def add_item():
+
+
+
 #  ########  ##     ## ##    ## 
 #  ##     ## ##     ## ###   ## 
 #  ##     ## ##     ## ####  ## 
@@ -417,7 +434,5 @@ def make_application():
 #  ##   ##   ##     ## ##  #### 
 #  ##    ##  ##     ## ##   ### 
 #  ##     ##  #######  ##    ## 
-
-
 
 app.run(debug=True)

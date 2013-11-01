@@ -4,47 +4,23 @@
 <fieldset>
 <legend>Confirmation</legend>
 <div class="row">
-<div class="small-2 columns">
-User ID:
-</div>
-<div class="small-2 columns">
-{{ application.uid }}
-</div>
-</div>
-
-<div class="row">
-<div class="small-2 columns">
-Borrow Date:
-</div>
 <div class="small-5 columns">
-{{ application.borrow_time}}
-</div>
-</div>
 
-<div class="row">
-<div class="small-2 columns">
-Return Date:
-</div>
-<div class="small-5 columns">
-{{ application.return_time}}
-</div>
-</div>
+<ul class="no-bullet">
+<li><ul class="inline-list"><li>Application ID:</li><li>{{ application.id }}</li></ul></li>
+<li><ul class="inline-list"><li>User ID:</li><li>{{ application.uid }}</li></ul></li>
+<li><ul class="inline-list"><li>Borrow Date:</li><li>{{ application.borrow_time }}</li></ul></li>
+<li><ul class="inline-list"><li>Return Date:</li><li>{{ application.return_time }}</li></ul></li>
 
-<div class="row">
-<div class="small-5 columns">
-<ul class="disc">
-
-{% for i in items %}
-
-
-
-<li>{{ i.name}}</li>
-
-
-
-{% endfor %}
-
+<li>Items:
+	<ul>
+	{% for i in items %}
+	<li>{{ i.name}}</li>
+	{% endfor %}
+	</ul>
+	</li>
 </ul>
+
 </div>
 </div>
 </fieldset>

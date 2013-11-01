@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<fieldset>
+<legend>Confirmation</legend>
+<div class="row">
+<div class="small-2 columns">
+User ID:
+</div>
+<div class="small-2 columns">
+{{ application.uid }}
+</div>
+</div>
+
+<div class="row">
+<div class="small-2 columns">
+Borrow Date:
+</div>
+<div class="small-5 columns">
+{{ application.borrow_time}}
+</div>
+</div>
+
+<div class="row">
+<div class="small-2 columns">
+Return Date:
+</div>
+<div class="small-5 columns">
+{{ application.return_time}}
+</div>
+</div>
+
+<div class="row">
+<div class="small-5 columns">
+<ul class="disc">
+
+{% for i in items %}
+
+
+
+<li>{{ i.name}}</li>
+
+
+
+{% endfor %}
+
+</ul>
+</div>
+</div>
+</fieldset>
+
+{% endblock %}
+

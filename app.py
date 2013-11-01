@@ -7,11 +7,11 @@
 #  #### ##     ## ##         #######  ##     ##    ##    
 
 import os
-from flask import Flask
+from flask import Flask, request, render_template, session, url_for, redirect, flash, g
 from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 # Array String conversion
-import ast
+import requests
 
 #   ######   #######  ##    ##  ######  ########    ###    ##    ## ######## 
 #  ##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    
@@ -220,6 +220,13 @@ class Application(db.Model):
 		else:
 			return False
 
+	def getItems(self):
+		itemapp = self.item_app
+		items = []
+		for ia in itemapp:
+			items.append(ia.items)
+		return items
+
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
 
@@ -295,7 +302,16 @@ def itemIfAvailable(id, borrow_time, return_time):
 			if not (before or after):
 				return False
 	return True
-			
+
+def availabeItems(borrow_time, return_time):
+	items = Item.query.filter(Item.status != STATUS['unavailable'])
+	available_items = []
+	for i in items:
+		if itemIfAvailable(i.id, borrow_time, return_time):
+			available_items.append(i)
+	return available_items
+
+
 
 # APPLICATION
 
@@ -362,11 +378,37 @@ def disapproveApplication(app_id):
 #    ## ##    ##  ##       ##  ##  ## 
 #     ###    #### ########  ###  ###  
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def index():
-	return 'Hello, World!'
+	all_applications = Application.query.all()
+	return render_template("index.html", application = all_applications)
 
+@app.route('/equipment_request/available_items', methods=['GET', 'POST'])
+def available_items():
+	borrow_time = request.form['borrow_time']
+	return_time = request.form['return_time']
+	borrow_time_object = datetime.strptime(borrow_time, '%m/%d/%Y')
+	session['br_time'] = borrow_time_object
+
+	return_time_object = datetime.strptime(return_time, '%m/%d/%Y')
+	session['re_time'] = return_time_object
+	available_items = availabeItems(borrow_time_object, return_time_object)
+	return render_template("selected.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
+
+@app.route('/equipment_request/application', methods=['GET', 'POST'])
+def make_application():
+	selected_items = request.form.getlist('selected_items')
+	print selected_items
+	app_json = {
+		'uid': 2,
+		'items': selected_items,
+		'borrow_time': session['br_time'],
+		'return_time': session['re_time']
+	}
+	application = makeApplication(app_json)
+	items = application.getItems()
+	return render_template("success.html", application = application, items = items)
 
 #  ########  ##     ## ##    ## 
 #  ##     ## ##     ## ###   ## 
@@ -378,4 +420,4 @@ def index():
 
 
 
-#app.run(debug=True)
+app.run(debug=True)

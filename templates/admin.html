@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3>Admin Panel</h3>
+
+<fieldset>
+<legend> Applications </legend>
+	
+	<div class="row">
+		<div class="small-12 columns">
+		<a href="{{url_for('make_application_step1')}}" class="small button"> <i class="fa fa-plus"></i> Add an Application</a>
+		</div>
+	</div>
+	  <table width=100%>
+	    <thead>
+	        <tr>
+	          <th>ID</th>
+	          <th>USER</th>
+	          <th>TIMESTAMP</th>
+	          <th>BORROW ON</th>
+	          <th>RETURN ON</th>
+	          <th>APPROVED BY</th>
+	          <th>ITEMS</th>
+	          <th>ACTIONS</th>
+	        </tr>
+	    </thead>
+	    <tbody>
+	    {% for application in all_applications %}
+	        <tr>
+	            <td><a href="/application/{{application.id}}" >{{application.id}}</a></td>
+	            <td>{{application.uid}}</td>
+	            <td>{{application.displayTimestamp()}}</td>
+	            <td>{{application.borrow_time.date()}}</td>
+	            <td>{{application.return_time.date()}}</td>
+	            {% if application.isApproved() == True %}
+	            <td>{{application.approval.approver.name}}</td>
+	            {% else %}
+	            <td>None</td>
+	            {% endif %}
+
+	            <td>{% for i in application.getItems() %}
+	            	{{ i.equipment.name }}, 
+	            	{% endfor %}
+
+	            </td>
+	            <td>
+	            	{% if application.isApproved() == True %}
+	<a href="/application/{{application.id}}/disapprove" ><i class="fa fa-undo fa-fw"></i></a>
+	{% else %}
+	<a href="/application/{{application.id}}/approve"><i class="fa fa-check fa-fw"></i></a>
+	{% endif %}
+	<a href="/application/{{application.id}}/delete" ><i class="fa fa-trash-o fa-fw"></i></a>
+
+	            </td>
+	        </tr>
+	    {% endfor %}
+	    </tbody>
+	</table>
+</fieldset>
+
+<fieldset>
+<legend> Items </legend>
+	<div class="row">
+		<div class="small-12 columns">
+		<a href="{{url_for('make_application_step1')}}" class="small button"> <i class="fa fa-plus"></i> Add an Item</a>
+		</div>
+	</div>
+
+	  <table width=100%>
+	    <thead>
+	        <tr>
+	          <th>id</th>
+	          <th>equipment</th>
+	          <th>category</th>
+	          <th>purchased_date</th>
+	          <th>STATUS</th>
+	          <th>ACTIONS</th>
+	        </tr>
+	    </thead>
+	    <tbody>
+	    {% for item in all_items %}
+	        <tr>
+	            <td>{{item.id}}</td>
+	            <td>{{item.equipment.name}}</td>
+	            <td>{{item.equipment.printCategory()}}</td>
+	            <td>{{item.purchase_date.date()}}</td>
+	            <td>
+	            	{% if item.status == 0 %}
+	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-circle fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	{% elif item.status == 1 %}
+	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left;margin-bottom:0px"><i class="fa fa-circle-o fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	{% else %}
+	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-minus-circle fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	{% endif %}
+
+					<ul id="status" class="f-dropdown">
+					  <li><a href="{{url_for('item_status', id=item.id, status=0)}}"><i class="fa fa-circle fa-fw"></i> Available</a></li>
+					  <li><a href="{{url_for('item_status', id=item.id, status=1)}}"><i class="fa fa-circle-o fa-fw"></i> Borrowed</a></li>
+					  <li><a href="{{url_for('item_status', id=item.id, status=2)}}"><i class="fa fa-minus-circle fa-fw"></i> Not Available</a></li>
+					</ul>
+	            </td>
+
+	            <td>
+	            <a href="#"><i class="fa fa-pencil fa-fw"></i></a>
+	            <a href="#"><i class="fa fa-trash-o fa-fw"></i></a>
+	            </td>
+	        </tr>
+	    {% endfor %}
+	    </tbody>
+	</table>
+</fieldset>
+
+{% endblock %}

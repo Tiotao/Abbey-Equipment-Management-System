@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3>Make an Application</h3>
+<h5 class="subheader">Step 3 out of 3</h5><div class="progress small-4"><span class="meter" style="width:90%"></span></div>
+
+
+
+<fieldset>
+<legend>Confirm your Application</legend>
+
+<div class="row">
+<div class="small-5 columns">
+
+<ul class="no-bullet">
+<li><ul class="inline-list"><li>User:</li><li>{{ user_name }}</li></ul></li>
+<li><ul class="inline-list"><li>Borrow Date:</li><li>{{ application['borrow_time'].date() }}</li></ul></li>
+<li><ul class="inline-list"><li>Return Date:</li><li>{{ application['return_time'].date() }}</li></ul></li>
+
+
+<li>Items:
+	<ul>
+	{% for i in item_name %}
+	<li>{{ i }}</li>
+	{% endfor %}
+	</ul>
+	</li>
+</ul>
+
+</div>
+
+
+
+</div>
+
+<div class="row">
+<div class="small-5 columns">
+	<a href="{{url_for('make_application')}}" class="small button">Confirm</a>
+</div>
+</div>
+
+</fieldset>
+
+{% endblock %}

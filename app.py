@@ -81,7 +81,7 @@ CATEGORY = {
 	'amp': 9
 }
 
-
+CATEGORY_NAME = ['General', 'Guitar', 'Keyboard', 'Bass', 'Stand', 'Cable', 'Console', 'Mixer', 'Mic', 'Amp']
 
 
 
@@ -99,6 +99,7 @@ class User(db.Model):
 	name = db.Column(db.String(64), unique = True, index = True)
 	email = db.Column(db.String(120), unique = True, index = True)
 	type = db.Column(db.String(50))
+	application = db.relationship('Application', backref='applicant')
 
 	def __init__(self, name, email):
 		self.name = name
@@ -155,13 +156,16 @@ class Equipment(db.Model):
 				available_items.append(i)
 		return available_items
 
+	def printCategory(self):
+		return CATEGORY_NAME[self.category]
+
+
 	def __repr__(self):
 		return '<Equipment > %r' %(self.name)
 
 class Item(db.Model):
 	__tablename__ = 'item'
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(120), index = True)
 	eid = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=False)
 	purchase_date = db.Column(db.DateTime)
 	status = db.Column(db.SmallInteger, nullable = False, default = STATUS['available'])
@@ -173,7 +177,6 @@ class Item(db.Model):
 			db.session.commit()
 		e = Equipment.query.filter_by(name=name).first()
 		self.eid = e.id
-		self.name = e.name
 		self.purchase_date = purchase_date
 		self.category = e.category
 
@@ -251,6 +254,9 @@ class Approval(db.Model):
 		self.aid = aid
 		self.approved_by = approved_by
 		self.approved_time = datetime.utcnow()
+
+	def displayApprovedTime(self):
+		return self.approved_time.strftime('%Y-%m-%d %H:%M:%S')
 
 	def __repr__(self):
 		return '<Approval %r>' %(self.aid)
@@ -361,11 +367,16 @@ def editApplication(id, json):
 
 def deleteApplication(id):
 	a = Application.query.get(id)
+	disapproveApplication(id)
 	if a is not None:
 		for r in a.item_app:
 			db.session.delete(r)
 		db.session.delete(a)
 		db.session.commit()
+
+def getApplication(id):
+	a = Application.query.get(id)
+	return a
 
 #APPROVAL
 def approveApplication(admin_id, app_id):
@@ -396,8 +407,12 @@ def index():
 	all_items = Item.query.all()
 	return render_template("index.html", all_applications = all_applications, all_items = all_items)
 
-@app.route('/equipment/available_items', methods=['GET', 'POST'])
-def available_items():
+@app.route('/application/step1', methods=['GET', 'POST'])
+def make_application_step1():
+	return render_template("application_step1.html")
+
+@app.route('/application/step2', methods=['GET', 'POST'])
+def make_application_step2():
 	borrow_time = request.form['borrow_time']
 	return_time = request.form['return_time']
 	borrow_time_object = datetime.strptime(borrow_time, '%m/%d/%Y')
@@ -406,25 +421,65 @@ def available_items():
 	return_time_object = datetime.strptime(return_time, '%m/%d/%Y')
 	session['re_time'] = return_time_object
 	available_items = availabeItems(borrow_time_object, return_time_object)
-	return render_template("selected.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
+	return render_template("application_step2.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
 
-@app.route('/equipment/application', methods=['GET', 'POST'])
-def make_application():
+@app.route('/application/step3', methods=['GET', 'POST'])
+def make_application_step3():
 	selected_items = request.form.getlist('selected_items')
-	print selected_items
 	app_json = {
 		'uid': 2,
 		'items': selected_items,
 		'borrow_time': session['br_time'],
 		'return_time': session['re_time']
 	}
+
+	user_name = User.query.get(app_json['uid']).name
+
+	item_name = []
+	for i in selected_items:
+		item_name.append(Item.query.get(i).equipment.name)
+
+	session['app'] = app_json
+
+	return render_template("application_step3.html", application = app_json, item_name = item_name, user_name=user_name)
+
+
+@app.route('/application/make', methods=['GET', 'POST'])
+def make_application():
+	app_json = session['app']
 	application = makeApplication(app_json)
-	items = application.getItems()
-	return render_template("success.html", application = application, items = items)
+	return render_template("application.html", application = application)
 
-# @app.route('item/add', methods=['GET', 'POST'])
-# def add_item():
+@app.route('/application/<id>', methods = ['GET', 'POST'])
+def application_info(id):
+	application = getApplication(id)
+	return render_template("application.html", application = application)
 
+@app.route('/application/<id>/delete', methods=['GET', 'POST'])
+def delete_application(id):
+	deleteApplication(id)
+	return redirect(request.referrer or url_for('index'))
+
+@app.route('/application/<id>/approve', methods=['GET', 'POST'])
+def approve_application(id):
+	approveApplication(2, id)
+	return redirect(request.referrer or url_for('application_info', id = id))
+
+@app.route('/application/<id>/disapprove', methods=['GET', 'POST'])
+def disapprove_application(id):
+	disapproveApplication(id)
+	return redirect(request.referrer or url_for('application_info', id = id))
+
+@app.route('/admin/', methods=['GET', 'POST'])
+def admin():
+	all_applications = Application.query.all()
+	all_items = Item.query.all()
+	return render_template("admin.html", all_applications = all_applications, all_items = all_items)
+
+@app.route('/admin/item_status=<status>, item=<id>', methods=['GET', 'POST'])
+def item_status(id, status):
+	changeItemStatus(id, status)
+	return redirect(request.referrer)
 
 
 #  ########  ##     ## ##    ## 

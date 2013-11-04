@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="panel">
+
+<div class="row">
+<div class="small-5 columns">
+
+<ul class="no-bullet">
+<li><ul class="inline-list"><li>Application ID:</li><li>{{ application.id }}</li></ul></li>
+<li><ul class="inline-list"><li>User:</li><li>{{ application.applicant.name }}</li></ul></li>
+<li><ul class="inline-list"><li>Borrow Date:</li><li>{{ application.borrow_time.date() }}</li></ul></li>
+<li><ul class="inline-list"><li>Return Date:</li><li>{{ application.return_time.date() }}</li></ul></li>
+
+
+<li>Items:
+	<ul>
+	{% for i in application.getItems() %}
+	<li>{{ i.equipment.name}}</li>
+	{% endfor %}
+	</ul>
+	</li>
+</ul>
+
+</div>
+</div>
+</div>
+
+
+<fieldset>
+<legend>Approval</legend>
+<ul class="no-bullet">
+<li><ul class="inline-list"><li>Approved:</li><li>{{ application.isApproved()}}</li></ul></li>
+
+{% if application.isApproved() == True %}
+
+<li><ul class="inline-list"><li>Approved By:</li><li>{{ application.approval.approver.name}}</li></ul></li>
+<li><ul class="inline-list"><li>Approved Time:</li><li>{{ application.approval.displayApprovedTime()}}</li></ul></li>
+
+{% endif %}
+
+</ul>
+</fieldset>
+
+<fieldset>
+<legend>Action</legend>
+
+<div class="row">
+<div class="small-5 columns">
+	{% if application.isApproved() == True %}
+	<a href="/application/{{application.id}}/disapprove" class="small success button">Disapprove</a>
+	{% else %}
+	<a href="/application/{{application.id}}/approve" class="small success button">Approve</a>
+	{% endif %}
+	<a href="#" class="small button">Edit</a>
+	<a href="/application/{{application.id}}/delete" class="small alert button">Delete</a>
+
+</div>
+
+</fieldset>
+
+{% endblock %}

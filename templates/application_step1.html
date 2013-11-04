@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3>Make an Application</h3>
+<h5 class="subheader">Step 1 out of 3</h5><div class="progress small-4"><span class="meter" style="width:10%"></span></div>
+<fieldset>
+	<legend>Prefered Date</legend>
+			<form action="{{ url_for('make_application_step2')}}" method="POST" id="dateForm">
+			<div class="row">
+
+				<div class="small-2 columns">
+					 <label class="right inline">Borrow Date:</label>
+				</div>
+				<div class="small-3 columns">
+					<input type="text" value="" id="borrow_time" name = "borrow_time" placeholder="Borrow Time"/>
+				</div>
+				<div class="small-2 columns">
+				 <label class="right inline">Return Date:</label>
+				</div>
+				<div class="small-3 columns">
+					<input type="text" value="" id="return_time" name="return_time" placeholder="Return Time"/>
+				</div>
+				<div class="small-2 columns">
+					<input class="small button" type="submit" value="Check"/>
+				</div>
+			</div>
+			</form>
+</fieldset>
+
+			<script>
+				$(function () {
+				// implementation of disabled form fields
+				var nowTemp = new Date();
+				var now = new Date(nowTemp.getFullYear(), nowTemp.getMonth(), nowTemp.getDate(), 0, 0, 0, 0);
+				var checkin = $('#borrow_time').fdatepicker({
+					onRender: function (date) {
+						return date.valueOf() < now.valueOf() ? 'disabled' : '';
+					}
+				}).on('changeDate', function (ev) {
+					if (ev.date.valueOf() > checkout.date.valueOf()) {
+						var newDate = new Date(ev.date)
+						newDate.setDate(newDate.getDate() + 1);
+						checkout.setValue(newDate);
+					}
+					checkin.hide();
+					$('#return_time')[0].focus();
+				}).data('datepicker');
+				var checkout = $('#return_time').fdatepicker({
+					onRender: function (date) {
+						return date.valueOf() <= checkin.date.valueOf() ? 'disabled' : '';
+					}
+				}).on('changeDate', function (ev) {
+					checkout.hide();
+				}).data('datepicker');
+				});
+			</script>
+
+{% endblock %}

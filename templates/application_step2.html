@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3>Make an Application</h3>
+<h5 class="subheader">Step 2 out of 3</h5><div class="progress small-4"><span class="meter" style="width:50%"></span></div>
+
+<fieldset>
+<legend>Available Items</legend>
+<form class="custom" action="{{ url_for('make_application_step3')}}" method="POST" id="itemForm">
+<div class="row">
+<div class="small-4 columns">
+<ul class="no-bullet">
+{% for item in available_items %}
+
+
+<li>
+<label for="{{ item.id }}"><input type="checkbox" id="{{ item.id }}" style="display: none;" value = "{{item.id}}" name='selected_items'/><span class="custom checkbox"></span>   {{ item.equipment.name }}</label>
+</li>
+
+
+{% endfor %}
+</ul>
+</div>
+</div>
+<div class="row">
+<div class="small-2 columns">
+<input class="small button" type="submit" value="Select"/>
+</div>
+</div>
+</form>
+</fieldset>
+
+{% endblock %}
+

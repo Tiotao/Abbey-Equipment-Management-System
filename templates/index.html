@@ -1,117 +1,12 @@
 {% extends "layout.html" %}
 {% block content %}
-				<fieldset>
-				<legend>Search</legend>
-						<form action="{{ url_for('available_items')}}" method="POST" id="dateForm">
-						<div class="row">
-							<div class="small-2 columns">
-								 <label class="right inline">Borrow Date:</label>
-							</div>
-							<div class="small-3 columns">
-								<input type="text" value="" id="borrow_time" name = "borrow_time" placeholder="Borrow Time"/>
-							</div>
-							<div class="small-2 columns">
-							 <label class="right inline">Return Date:</label>
-							</div>
-							<div class="small-3 columns">
-								<input type="text" value="" id="return_time" name="return_time" placeholder="Return Time"/>
-							</div>
-							<div class="small-2 columns">
-								<input class="small button" type="submit" value="Check"/>
-							</div>
-						</div>
-						</form>
-				</fieldset>
 
-				<fieldset>
-				<legend> Current Applications </legend>
-					  <table width=100%>
-					    <thead>
-					        <tr>
-					          <th>id</th>
-					          <th>uid</th>
-					          <th>timestamp</th>
-					          <th>borrow_time</th>
-					          <th>return_time</th>
-					          <th>approved</th>
-					          <th>items</th>
-					        </tr>
-					    </thead>
-					    <tbody>
-					    {% for application in all_applications %}
-					        <tr>
-					            <td>{{application.id}}</td>
-					            <td>{{application.uid}}</td>
-					            <td>{{application.displayTimestamp()}}</td>
-					            <td>{{application.borrow_time.date()}}</td>
-					            <td>{{application.return_time.date()}}</td>
-					            <td>{{application.isApproved()}}</td>
-					            <td>{% for i in application.getItems() %}
-					            	{{ i.name }}, 
-					            	{% endfor %}
+<div class="row">
+<div class="small-12 columns ">
+	<a href="{{url_for('make_application_step1')}}" class="button"> <i class="fa fa-plus fa-fw"></i> Submit an Application</a>
 
-					            </td>
-					        </tr>
-					    {% endfor %}
-					    </tbody>
-					</table>
-				</fieldset>
-
-				<fieldset>
-				<legend> Current Items </legend>
-					  <table width=100%>
-					    <thead>
-					        <tr>
-					          <th>id</th>
-					          <th>name</th>
-					          <th>equipment</th>
-					          <th>category</th>
-					          <th>purchased_date</th>
-					          <th>status</th>
-					        </tr>
-					    </thead>
-					    <tbody>
-					    {% for item in all_items %}
-					        <tr>
-					            <td>{{item.id}}</td>
-					            <td>{{item.name}}</td>
-					            <td>{{item.equipment.name}}</td>
-					            <td>{{item.equipment.category}}</td>
-					            <td>{{item.purchase_date.date()}}</td>
-					            <td>{{item.printStatus()}}</td>
-					        </tr>
-					    {% endfor %}
-					    </tbody>
-					</table>
-				</fieldset>
-
-
-			<script>
-				$(function () {
-				// implementation of disabled form fields
-				var nowTemp = new Date();
-				var now = new Date(nowTemp.getFullYear(), nowTemp.getMonth(), nowTemp.getDate(), 0, 0, 0, 0);
-				var checkin = $('#borrow_time').fdatepicker({
-					onRender: function (date) {
-						return date.valueOf() < now.valueOf() ? 'disabled' : '';
-					}
-				}).on('changeDate', function (ev) {
-					if (ev.date.valueOf() > checkout.date.valueOf()) {
-						var newDate = new Date(ev.date)
-						newDate.setDate(newDate.getDate() + 1);
-						checkout.setValue(newDate);
-					}
-					checkin.hide();
-					$('#return_time')[0].focus();
-				}).data('datepicker');
-				var checkout = $('#return_time').fdatepicker({
-					onRender: function (date) {
-						return date.valueOf() <= checkin.date.valueOf() ? 'disabled' : '';
-					}
-				}).on('changeDate', function (ev) {
-					checkout.hide();
-				}).data('datepicker');
-				});
-			</script>
+	<a href="{{url_for('admin')}}" class="success button"> <i class="fa fa-tachometer fa-fw"></i>  Admin Panel</a>
+</div>
+</div>
 
 {% endblock %}

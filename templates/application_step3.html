@@ -20,8 +20,8 @@
 
 <li>Items:
 	<ul>
-	{% for i in item_name %}
-	<li>{{ i }}</li>
+	{% for i in items.items() %}
+	<li>{{ i[0] }} × {{i[1]}}</li>
 	{% endfor %}
 	</ul>
 	</li>

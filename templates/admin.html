@@ -60,19 +60,48 @@
 
 <fieldset>
 <legend> Items </legend>
-	<div class="row">
-		<div class="small-12 columns">
-		<a href="{{url_for('make_application_step1')}}" class="small button"> <i class="fa fa-plus"></i> Add an Item</a>
-		</div>
-	</div>
+	<fieldset>
+	<legend>Add an Item</legend>
+			<form class="custom" action="{{ url_for('add_item')}}" method="POST" id="itemForm">
+			<div class="row">
+		      <div class="large-4 columns">
+		        <label>Name</label>
+		        <input name="name" id="name" type="text" placeholder="SM57">
+		      </div>
+		      <div class="large-3 columns">
+		        <label for="category">Category</label>
+			      <select name="category" id="category" class="medium">
+			        <option value="0">General</option>
+			        <option value="1">Guitar</option>
+			        <option value="2">Keyboard</option>
+			        <option value="3">Bass</option>
+			        <option value="4">Stand</option>
+			        <option value="5">Cable</option>
+			        <option value="6">Console</option>
+			        <option value="7">Mixer</option>
+			        <option value="8">Mic</option>
+			        <option value="9">Amp</option>
+			        </select>
+		      </div>
+		      <div class="large-3 columns">
+		        <label>Purchased Date</label>
+		        <input type="text" value="" id="purchase_date" name = "purchase_date" placeholder="01/01/2014"/>
+		      </div>
+		      <div class="large-2 columns">
+		      <label><br></label>
+		      <input class="small button" type="submit" value="Add"/>
+		      </div>	      
+		    </div>
+			</form>
+		</fieldset>
 
 	  <table width=100%>
 	    <thead>
 	        <tr>
-	          <th>id</th>
-	          <th>equipment</th>
-	          <th>category</th>
-	          <th>purchased_date</th>
+	          <th>ID</th>
+	          <th>EQUIPMENT</th>
+	          <th>CATEGORY</th>
+	          <th>PURCHASED DATE</th>
 	          <th>STATUS</th>
 	          <th>ACTIONS</th>
 	        </tr>
@@ -80,10 +109,10 @@
 	    <tbody>
 	    {% for item in all_items %}
 	        <tr>
-	            <td>{{item.id}}</td>
-	            <td>{{item.equipment.name}}</td>
-	            <td>{{item.equipment.printCategory()}}</td>
-	            <td>{{item.purchase_date.date()}}</td>
+	            <td id="{{item.id}}_id">{{item.id}}</td>
+	            <td id="{{item.id}}_name">{{item.equipment.name}}</td>
+	            <td id="{{item.id}}_category">{{item.equipment.printCategory()}}</td>
+	            <td id="{{item.id}}_purchase_date">{{item.purchase_date.date()}}</td>
 	            <td>
 	            	{% if item.status == 0 %}
 	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-circle fa-fw"></i> {{item.printStatus()}} </a><br>
@@ -101,13 +130,60 @@
 	            </td>
 
 	            <td>
-	            <a href="#"><i class="fa fa-pencil fa-fw"></i></a>
-	            <a href="#"><i class="fa fa-trash-o fa-fw"></i></a>
+	            <a href="#" data-reveal-id="{{item.id}}_edit" ><i class="fa fa-pencil fa-fw"></i></a>
+	            <a href="/item/{{item.id}}/delete"><i class="fa fa-trash-o fa-fw"></i></a>
+	            <div id="{{item.id}}_edit" class="reveal-modal">
+	        <form class="custom" action="/item/{{item.id}}/edit" method="POST" id="itemEditForm">
+  <h2>Awesome. I have it.</h2>
+			
+				<div class="row">
+			      <div class="large-4 columns">
+			        <label>Name</label>
+			        <input name="name_edit" id="name_edit" type="text" value="{{item.equipment.name}}">
+			      </div>
+			      <div class="large-3 columns">
+			        <label for="category_edit">Category</label>
+				      <select name="category_edit" id="category_edit" class="medium">
+				      {% for cat in category_name %}
+				      {% if item.equipment.printCategory() == cat %}
+				      <option selected="selected" value= "{{ category[cat.lower()] }}" >{{ cat }}</option>
+				      {% else %}
+				        <option value= "{{ category[cat.lower()] }}" >{{ cat }}</option>
+				       {% endif %}
+				       {% endfor %}
+				        </select>
+			      </div>
+			      <div class="large-3 columns">
+			        <label>Purchased Date</label>
+			        <input type="text" value="{{item.purchase_date.strftime('%d/%m/%Y')}}" id="purchase_date_edit" name = "purchase_date_edit" placeholder="01/01/2014"/>
+			      </div>
+			      <div class="large-2 columns">
+			      <label><br></label>
+			      <input class="small button" type="submit" value="Edit"/>
+			      </div>	      
+			    </div>
+			</form>
+		</div>
 	            </td>
 	        </tr>
+
+
+
+
 	    {% endfor %}
 	    </tbody>
 	</table>
 </fieldset>
+
+<script>
+$('#purchase_date').fdatepicker({
+					format: 'dd/mm/yyyy'
+				});
+
+$('#purchase_date_edit').fdatepicker({
+					format: 'dd/mm/yyyy'
+				});
+
+</script>
 
 {% endblock %}

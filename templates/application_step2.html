@@ -6,22 +6,38 @@
 
 <fieldset>
 <legend>Available Items</legend>
+
+
 <form class="custom" action="{{ url_for('make_application_step3')}}" method="POST" id="itemForm">
+
+{% for category in available_items.items() %}
 <div class="row">
-<div class="small-4 columns">
-<ul class="no-bullet">
-{% for item in available_items %}
-
-
-<li>
-<label for="{{ item.id }}"><input type="checkbox" id="{{ item.id }}" style="display: none;" value = "{{item.id}}" name='selected_items'/><span class="custom checkbox"></span>   {{ item.equipment.name }}</label>
-</li>
-
-
+<div class="small-3 columns">
+	<h4>{{category[0]}}</h4>
+</div>
+<div class="small-9 columns">
+	
+	
+	{% for equipment in category[1].items() %}
+	<div class="row">
+	<div class="small-3 columns">
+		<label for="{{equipment[0]}}" name="{{equipment[0]}}" class="right inline">{{equipment[0]}}</label>
+	</div>
+	<div class="small-3 columns">
+		<select id="{{equipment[0]}}" name="{{equipment[0]}}" class="medium">
+		<option value = "[]">0</option>
+		{% set choose = 1 %}
+			{% for iid in equipment[1] %}
+			<option value = "{{equipment[1][:choose]}}">{{choose}}</option>
+			{% set choose = choose + 1 %}
+			{% endfor %}
+		</select>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+</div>
 {% endfor %}
-</ul>
-</div>
-</div>
 <div class="row">
 <div class="small-2 columns">
 <input class="small button" type="submit" value="Select"/>

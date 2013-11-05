@@ -12,6 +12,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 # Array String conversion
 import requests
+import ast
 
 #   ######   #######  ##    ##  ######  ########    ###    ##    ## ######## 
 #  ##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    
@@ -66,6 +67,7 @@ STATUS = {
 	'available': 0,
 	'borrowed' : 1,
 	'unavailable': 2,
+	'deleted': 3
 }
 
 CATEGORY = {
@@ -156,9 +158,14 @@ class Equipment(db.Model):
 				available_items.append(i)
 		return available_items
 
+	def availableItemsId(self):
+		iids = []
+		for i in self.availableItems():
+			iids.append(i.id)
+		return iids
+
 	def printCategory(self):
 		return CATEGORY_NAME[self.category]
-
 
 	def __repr__(self):
 		return '<Equipment > %r' %(self.name)
@@ -185,11 +192,13 @@ class Item(db.Model):
 			return 'Available'
 		if (self.status == 1):
 			return 'Borrowed'
-		else:
+		if (self.status == 2):
 			return 'Unavailable'
+		else:
+			return 'Deleted'
 
 	def __repr__(self):
-		reprs = (self.name, self.id)
+		reprs = (self.equipment.name, self.id)
 		return '<Item %r>' %(reprs,)
 
 
@@ -282,16 +291,14 @@ def createItem(json):
 	return i
 
 def deleteItem(id):
-	i = Item.query.get(id)
-	if i is not None:
-		db.session.delete(i)
-		db.session.commit()
+	i = changeItemStatus(id, STATUS['deleted'])
+	return i
 
 def editItem(id, json):
 	i = Item.query.get(id)
 	if i is not None:
-		i.name = json['name']
-		i.category = json['category']
+		i.equipment.name = json['name']
+		i.equipment.category = json['category']
 		i.purchase_date = json['purchase_date']
 		db.session.commit()
 
@@ -321,12 +328,44 @@ def itemIfAvailable(id, borrow_time, return_time):
 	return True
 
 def availabeItems(borrow_time, return_time):
-	items = Item.query.filter(Item.status != STATUS['unavailable'])
-	available_items = []
-	for i in items:
-		if itemIfAvailable(i.id, borrow_time, return_time):
-			available_items.append(i)
-	return available_items
+
+	# {
+	# 	'Mic': {
+	# 			'SM57': [1,2,3],
+	# 			'SM58': [5,6,7],
+	# 	},
+
+	# 	'General: {
+
+
+	# 	}
+
+
+	# }
+
+	json = {}
+
+	for Cat in CATEGORY_NAME:
+		
+		cat = Cat.lower()
+		equipments = Equipment.query.filter(Equipment.category == CATEGORY[cat]).all()
+		if len(equipments)>0:
+			json[Cat] = {}
+			for e in equipments:
+				# to check if it is avalaible within timeframe
+				iids = e.availableItemsId()
+				available_iids = []
+				for id in iids:
+					if itemIfAvailable(id, borrow_time, return_time):
+						available_iids.append(id)
+				if len(available_iids) > 0:
+					json[Cat][e.name] = available_iids
+
+	for c in json.items():
+		if c[1] == {}:
+			del json[c[0]]
+
+	return json
 
 
 
@@ -334,7 +373,7 @@ def availabeItems(borrow_time, return_time):
 
 # json for application making
 # {
-# 	'uid' : 1
+# 	'uid' : 1,
 #	'items': [1, 2, 3],
 # 	'borrow_time': datetime.(2013, 10, 28, 13, 12, 45, 931000),
 # 	'return_time': datetime.(2013, 10, 28, 13, 12, 45, 931000)
@@ -403,9 +442,7 @@ def disapproveApplication(app_id):
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def index():
-	all_applications = Application.query.all()
-	all_items = Item.query.all()
-	return render_template("index.html", all_applications = all_applications, all_items = all_items)
+	return render_template("index.html")
 
 @app.route('/application/step1', methods=['GET', 'POST'])
 def make_application_step1():
@@ -415,17 +452,33 @@ def make_application_step1():
 def make_application_step2():
 	borrow_time = request.form['borrow_time']
 	return_time = request.form['return_time']
-	borrow_time_object = datetime.strptime(borrow_time, '%m/%d/%Y')
+	borrow_time_object = datetime.strptime(borrow_time, '%d/%m/%Y')
 	session['br_time'] = borrow_time_object
 
-	return_time_object = datetime.strptime(return_time, '%m/%d/%Y')
+	return_time_object = datetime.strptime(return_time, '%d/%m/%Y')
 	session['re_time'] = return_time_object
 	available_items = availabeItems(borrow_time_object, return_time_object)
 	return render_template("application_step2.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
 
 @app.route('/application/step3', methods=['GET', 'POST'])
 def make_application_step3():
-	selected_items = request.form.getlist('selected_items')
+
+	
+	selected_items = []
+	selected = request.form
+
+	items = {}
+
+	for key in selected.keys():
+		for value in selected.getlist(key):
+			value = ast.literal_eval(value)
+			if len(value) > 0:
+				items[key] = len(value)
+				selected_items.extend(value)
+	
+
+	print items
+
 	app_json = {
 		'uid': 2,
 		'items': selected_items,
@@ -435,24 +488,22 @@ def make_application_step3():
 
 	user_name = User.query.get(app_json['uid']).name
 
-	item_name = []
-	for i in selected_items:
-		item_name.append(Item.query.get(i).equipment.name)
-
 	session['app'] = app_json
 
-	return render_template("application_step3.html", application = app_json, item_name = item_name, user_name=user_name)
+	return render_template("application_step3.html", application = app_json, items = items, user_name=user_name)
 
 
 @app.route('/application/make', methods=['GET', 'POST'])
 def make_application():
 	app_json = session['app']
 	application = makeApplication(app_json)
-	return render_template("application.html", application = application)
+	id = application.id
+	return redirect("/application/"+str(id))
 
 @app.route('/application/<id>', methods = ['GET', 'POST'])
 def application_info(id):
 	application = getApplication(id)
+
 	return render_template("application.html", application = application)
 
 @app.route('/application/<id>/delete', methods=['GET', 'POST'])
@@ -473,14 +524,46 @@ def disapprove_application(id):
 @app.route('/admin/', methods=['GET', 'POST'])
 def admin():
 	all_applications = Application.query.all()
-	all_items = Item.query.all()
-	return render_template("admin.html", all_applications = all_applications, all_items = all_items)
+	all_items = Item.query.filter(Item.status < 2)
+	return render_template("admin.html", all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
 
 @app.route('/admin/item_status=<status>, item=<id>', methods=['GET', 'POST'])
 def item_status(id, status):
 	changeItemStatus(id, status)
 	return redirect(request.referrer)
 
+@app.route('/item/add', methods=['GET', 'POST'])
+def add_item():
+	name = request.form['name']
+	category = int(request.form['category'])
+	purchase_date = request.form['purchase_date']
+	purchase_date_object = datetime.strptime(purchase_date, '%d/%m/%Y')
+	json = {
+		"name": name,
+		"category": category,
+		"purchase_date": purchase_date_object
+	}
+	i = createItem(json)
+	return redirect(request.referrer)
+
+@app.route('/item/<id>/delete', methods=['GET', 'POST'])
+def delete_item(id):
+	deleteItem(id)
+	return redirect(request.referrer)
+
+@app.route('/item/<id>/edit', methods=['GET', 'POST'])
+def edit_item(id):
+	name = request.form['name_edit']
+	category = int(request.form['category_edit'])
+	purchase_date = request.form['purchase_date_edit']
+	purchase_date_object = datetime.strptime(purchase_date, '%d/%m/%Y')
+	json = {
+		"name": name,
+		"category": category,
+		"purchase_date": purchase_date_object
+	}
+	editItem(id, json)
+	return redirect(request.referrer)
 
 #  ########  ##     ## ##    ## 
 #  ##     ## ##     ## ###   ## 

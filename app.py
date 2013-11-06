@@ -755,7 +755,7 @@ def not_authorized():
 
 @app.route('/create_admin')
 def create_admin():
-	a = Admin('admin', 'abbey@tembusupac.org', 'abbey@tembusupac.org')
+	a = Admin('ADMIN', 'admin@tembusupac.org', 'abbey@tembusupac.org')
 	db.session.add(a)
 	db.session.commit()
 	print a

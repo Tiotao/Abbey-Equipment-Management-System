@@ -745,7 +745,7 @@ def edit_user(id):
 	json = {
 		"name": name,
 	}
-	editItem(id, json)
+	editUser(id, json)
 	return redirect(request.referrer)	
 
 @app.route('/error/not_authorized')
@@ -756,7 +756,7 @@ def not_authorized():
 @app.route('/create_admin')
 @login_required
 def create_admin():
-	a = Admin('admin', 'tiotaocn@gmail.com', 'abbey@tembusupac.org')
+	a = Admin('admin', 'abbey@tembusupac.org', 'abbey@tembusupac.org')
 	db.session.add(a)
 	db.session.commit()
 	return redirect(url_for('index'))

@@ -1,13 +1,14 @@
 {% extends "layout.html" %}
 {% block content %}
 
+<h3>Application {{ application.id }}</h3>
+
 <div class="panel">
 
 <div class="row">
 <div class="small-5 columns">
 
 <ul class="no-bullet">
-<li><ul class="inline-list"><li>Application ID:</li><li>{{ application.id }}</li></ul></li>
 <li><ul class="inline-list"><li>User:</li><li>{{ application.applicant.name }}</li></ul></li>
 <li><ul class="inline-list"><li>Borrow Date:</li><li>{{ application.borrow_time.date() }}</li></ul></li>
 <li><ul class="inline-list"><li>Return Date:</li><li>{{ application.return_time.date() }}</li></ul></li>
@@ -47,13 +48,18 @@
 
 <div class="row">
 <div class="small-5 columns">
+{% if g.user.isAdmin() %}
 	{% if application.isApproved() == True %}
 	<a href="/application/{{application.id}}/disapprove" class="small success button">Disapprove</a>
 	{% else %}
 	<a href="/application/{{application.id}}/approve" class="small success button">Approve</a>
 	{% endif %}
-	<a href="#" class="small button">Edit</a>
+{% endif %}	
 	<a href="/application/{{application.id}}/delete" class="small alert button">Delete</a>
+
+
+
+
 
 </div>
 

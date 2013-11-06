@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3>{{user.name}}</h3>
+
+<div class="panel">
+
+<div class="row">
+<div class="small-5 columns">
+
+<ul class="no-bullet">
+<li><ul class="inline-list"><li>Name:</li><li>{{ user.name }}</li></ul></li>
+<li><ul class="inline-list"><li>Email:</li><li>{{ user.email }}</li></ul></li>
+
+</ul>
+
+</div>
+</div>
+</div>
+
+
+<div class="row">
+<div class="small-12 columns">
+	<fieldset>
+	
+	<legend>Applications</legend>
+	  <div class="row">
+	<div class="small-2 columns">
+	<h6 class="subheader">ID</h6>
+	<br>
+	</div>
+	<div class="small-7 columns">
+	<h6 class="subheader">Timestamp</h6>
+	<br>
+	</div>
+	{% if g.user == user %}
+	<div class="small-3 columns">
+	<h6 class="subheader">Actions</h6>
+	<br>
+	
+	</div>
+	{% endif %}
+	</div>
+
+	 
+	    {% for application in user.application %}
+	        <div class="row">
+	        <div class="small-2 columns"><a href="/application/{{application.id}}" ><p>{{application.id}}</p></a></div>
+	        <div class="small-7 columns">
+	            <p>{{application.displayTimestamp()}}</p>
+	        </div>
+	        {% if g.user == user %}
+	        <div class="small-3 columns">
+	        <a href="/application/{{application.id}}/delete" ><p><i class="fa fa-trash-o fa-fw"></i></p></a>
+	        </div>
+	        {% endif %}
+	        </div>
+	    {% endfor %}
+
+</fieldset>
+</div>
+</div>
+
+<fieldset>
+<legend>Action</legend>
+
+<div class="row">
+<div class="small-5 columns">
+{% if g.user.isAdmin() %}
+	<a href="/user/{{user.id}}/delete" class="small alert button">Delete User</a>
+{% endif %}	
+
+{% if g.user==user %}
+
+	<a href="#" data-reveal-id="{{user.id}}_edit"  class="small button">Edit Profile</a>	           
+	            <div id="{{user.id}}_edit" class="reveal-modal">
+	        <form class="custom" action="/user/{{user.id}}/edit" method="POST" id="itemEditForm">
+  <h2>Edit Item</h2>
+			
+				<div class="row">
+			      <div class="large-4 columns">
+			        <label for="name_edit" class="right inline">Name:</label>
+			       </div>
+			       <div class="large-4 columns">
+			        <input name="name_edit" id="name_edit" type="text" value="{{user.name}}">
+			        </div>
+			        <div class="large-4 columns">
+			      
+			      <input class="small button" type="submit" value="Edit"/></div>
+			      </div>	      
+			    </div>
+			</form>
+		</div>
+
+{% endif %}
+
+</div>
+</div>
+
+</fieldset>
+
+{% endblock %}
+
+

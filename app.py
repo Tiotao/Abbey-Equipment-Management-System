@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 # Array String conversion
 import requests
 import ast
+from flask.ext.openid import OpenID
+from flask.ext.login import login_user, logout_user, current_user, login_required, LoginManager
+
 
 #   ######   #######  ##    ##  ######  ########    ###    ##    ## ######## 
 #  ##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    
@@ -56,6 +59,12 @@ app.secret_key = SECRET_KEY
 app.port = PORT
 app.host = '0.0.0.0'
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+
+#LOGIN
+oid = OpenID(app, '/path/to/store')
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 
 #DATABASE
 
@@ -118,6 +127,20 @@ class User(db.Model):
 		boolean = (self.status == USER_STATUS['deleted'])
 		return boolean
 	
+	def is_active(self):
+		return not(self.isDeleted())
+
+	def get_id(self):
+		return self.id
+
+	def is_authenticated(self):
+		return True
+
+	def is_anonymous(self):
+		return False
+
+	def isAdmin(self):
+		return Admin.query.get(self.id) != None
 
 	__mapper_args__ = {
 		'polymorphic_identity': 'user',
@@ -427,6 +450,26 @@ def getApplication(id):
 	a = Application.query.get(id)
 	return a
 
+def getUserApplication(uid):
+	a = User.query.get(uid).application
+	return a
+
+def getUserPendingApplication(uid):
+	apps = getUserApplication(uid)
+	pending_apps = []
+	for a in apps:
+		if a.approval is None:
+			pending_apps.append(a)
+	return pending_apps
+
+def getUserApprovedApplication(uid):
+	apps = getUserApplication(uid)
+	approved_apps = []
+	for a in apps:
+		if a.approval is not None:
+			approved_apps.append(a)
+	return approved_apps
+
 #APPROVAL
 def approveApplication(admin_id, app_id):
 	a = Approval(app_id, admin_id)
@@ -442,6 +485,13 @@ def disapproveApplication(app_id):
 
 #USER
 
+def createUser(name, email):
+	u = User(name, email)
+	if u is not None:
+		db.session.add(u)
+		db.session.commit()
+	return u
+
 def deleteUser(id):
 	u = User.query.get(id)
 	if u is not None:
@@ -449,7 +499,23 @@ def deleteUser(id):
 		db.session.commit()
 	return u
 
+def editUser(id, json):
+	u = User.query.get(id)
+	if u is not None:
+		u.name = json['name']
+		db.session.commit()
+	return u
 
+
+#LOGIN
+
+@login_manager.user_loader
+def load_user(id):
+	return User.query.get(id)
+
+@app.before_request
+def before_request():
+	g.user = current_user
 
 #  ##     ## #### ######## ##      ## 
 #  ##     ##  ##  ##       ##  ##  ## 
@@ -459,16 +525,76 @@ def deleteUser(id):
 #    ## ##    ##  ##       ##  ##  ## 
 #     ###    #### ########  ###  ###  
 
+
+@app.route('/login', methods=['GET', 'POST'])
+@oid.loginhandler
+def login():
+	if g.user is not None and g.user.is_authenticated():
+		login_user(g.user)
+		return redirect(oid.get_next_url())
+	if request.method == 'POST':
+		openid = request.form.get('openid')
+		if openid:
+			return oid.try_login(openid, ask_for=['email', 'fullname','nickname'])
+	return render_template('login.html', next=oid.get_next_url(), error=oid.fetch_error())
+
+@oid.after_login
+def create_or_login(resp):
+    session['openid'] = resp.identity_url
+    print resp.email
+    print resp.identity_url
+    user = User.query.filter_by(email=resp.email).first()
+    print user
+    if user is not None:
+        flash(u'Successfully signed in')
+        login_user(user)
+        g.user = user
+        return redirect(oid.get_next_url())
+    return redirect(url_for('create_profile', next=oid.get_next_url(),
+                            name=resp.fullname or resp.nickname,
+                            email=resp.email))
+
+@app.route('/create-profile', methods=['GET', 'POST'])
+def create_profile():
+	if g.user is not None and g.user.is_authenticated():
+		return redirect(url_for('index'))
+	if request.method == 'POST':
+		name = request.form['name']
+		email = request.form['email']
+		if not name:
+			flash(u'Error: you have to provide a name')
+		elif '@' not in email:
+			flash(u'Error: you have to enter a valid email address')
+		else:
+			flash(u'Profile successfully created')
+			createUser(name, email)
+			return redirect(oid.get_next_url())
+	return render_template('create_profile.html', next_url=oid.get_next_url())
+
+@app.route('/logout')
+@login_required
+def logout():
+    session.pop('openid', None)
+    logout_user()
+    return redirect(oid.get_next_url())
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
+@login_required
 def index():
-	return render_template("index.html")
+	uid = g.user.id
+	pending_application = getUserPendingApplication(uid)
+	approved_application = getUserApprovedApplication(uid)
+
+	return render_template("index.html", approved_application = approved_application, pending_application = pending_application)
 
 @app.route('/application/step1', methods=['GET', 'POST'])
+@login_required
 def make_application_step1():
 	return render_template("application_step1.html")
 
 @app.route('/application/step2', methods=['GET', 'POST'])
+@login_required
 def make_application_step2():
 	borrow_time = request.form['borrow_time']
 	return_time = request.form['return_time']
@@ -481,6 +607,7 @@ def make_application_step2():
 	return render_template("application_step2.html", available_items=available_items, borrow_time = borrow_time_object, return_time = return_time_object)
 
 @app.route('/application/step3', methods=['GET', 'POST'])
+@login_required
 def make_application_step3():
 
 	
@@ -500,7 +627,7 @@ def make_application_step3():
 	print items
 
 	app_json = {
-		'uid': 2,
+		'uid': g.user.id,
 		'items': selected_items,
 		'borrow_time': session['br_time'],
 		'return_time': session['re_time']
@@ -514,6 +641,7 @@ def make_application_step3():
 
 
 @app.route('/application/make', methods=['GET', 'POST'])
+@login_required
 def make_application():
 	app_json = session['app']
 	application = makeApplication(app_json)
@@ -521,39 +649,49 @@ def make_application():
 	return redirect("/application/"+str(id))
 
 @app.route('/application/<id>', methods = ['GET', 'POST'])
+@login_required
 def application_info(id):
 	application = getApplication(id)
 
 	return render_template("application.html", application = application)
 
 @app.route('/application/<id>/delete', methods=['GET', 'POST'])
+@login_required
 def delete_application(id):
 	deleteApplication(id)
 	return redirect(request.referrer or url_for('index'))
 
 @app.route('/application/<id>/approve', methods=['GET', 'POST'])
+@login_required
 def approve_application(id):
-	approveApplication(2, id)
+	approveApplication(g.user.id, id)
 	return redirect(request.referrer or url_for('application_info', id = id))
 
 @app.route('/application/<id>/disapprove', methods=['GET', 'POST'])
+@login_required
 def disapprove_application(id):
 	disapproveApplication(id)
 	return redirect(request.referrer or url_for('application_info', id = id))
 
 @app.route('/admin/', methods=['GET', 'POST'])
+@login_required
 def admin():
-	all_applications = Application.query.all()
-	all_items = Item.query.filter(Item.status < 2)
-	all_users = User.query.filter(User.status == 0)
-	return render_template("admin.html", all_users = all_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
+	if not g.user.isAdmin():
+		return redirect(url_for('not_authorized'))
+	else:
+		all_applications = Application.query.all()
+		all_items = Item.query.filter(Item.status < 2)
+		all_users = User.query.filter(User.status == 0)
+		return render_template("admin.html", all_users = all_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
 
 @app.route('/admin/item_status=<status>, item=<id>', methods=['GET', 'POST'])
+@login_required
 def item_status(id, status):
 	changeItemStatus(id, status)
 	return redirect(request.referrer)
 
 @app.route('/item/add', methods=['GET', 'POST'])
+@login_required
 def add_item():
 	name = request.form['name']
 	category = int(request.form['category'])
@@ -568,11 +706,15 @@ def add_item():
 	return redirect(request.referrer)
 
 @app.route('/item/<id>/delete', methods=['GET', 'POST'])
+@login_required
 def delete_item(id):
 	deleteItem(id)
 	return redirect(request.referrer)
 
+
+
 @app.route('/item/<id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_item(id):
 	name = request.form['name_edit']
 	category = int(request.form['category_edit'])
@@ -587,14 +729,49 @@ def edit_item(id):
 	return redirect(request.referrer)
 
 @app.route('/user/<id>', methods=['GET','POST'])
+@login_required
 def user_info(id):
 	user = User.query.get(id)
 	return render_template('user.html', user = user)
 
+
 @app.route('/user/<id>/delete', methods=['GET','POST'])
+@login_required
 def user_delete(id):
 	deleteUser(id)
 	return redirect(request.referrer)
+
+@app.route('/user/<id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_user(id):
+	name = request.form['name_edit']
+	json = {
+		"name": name,
+	}
+	editItem(id, json)
+	return redirect(request.referrer)	
+
+@app.route('/error/not_authorized')
+@login_required
+def not_authorized():
+	return render_template('not_authorized.html')
+
+@app.route('/create_admin')
+@login_required
+def create_admin():
+	a = Admin('admin', 'tiotaocn@gmail.com', 'abbey@tembusupac.org')
+	db.session.add(a)
+	db.session.commit()
+	return redirect(url_for('index'))
+
+@app.errorhandler(404)
+def internal_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
+
 #  ########  ##     ## ##    ## 
 #  ##     ## ##     ## ###   ## 
 #  ##     ## ##     ## ####  ## 

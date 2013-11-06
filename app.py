@@ -83,6 +83,11 @@ CATEGORY = {
 	'amp': 9
 }
 
+USER_STATUS = {
+	'normal': 0,
+	'deleted': 1
+}
+
 CATEGORY_NAME = ['General', 'Guitar', 'Keyboard', 'Bass', 'Stand', 'Cable', 'Console', 'Mixer', 'Mic', 'Amp']
 
 
@@ -102,11 +107,17 @@ class User(db.Model):
 	email = db.Column(db.String(120), unique = True, index = True)
 	type = db.Column(db.String(50))
 	application = db.relationship('Application', backref='applicant')
+	status = db.Column(db.SmallInteger, nullable=False, default = USER_STATUS['normal'])
 
 	def __init__(self, name, email):
 		self.name = name
 		self.email = email
 
+
+	def isDeleted(self):
+		boolean = (self.status == USER_STATUS['deleted'])
+		return boolean
+	
 
 	__mapper_args__ = {
 		'polymorphic_identity': 'user',
@@ -387,7 +398,6 @@ def makeApplication(json):
 	for i in json['items']:
 		item_app = ItemApp(i, a.id)
 		db.session.add(item_app)
-
 	db.session.commit()	
 	return a
 
@@ -428,6 +438,16 @@ def disapproveApplication(app_id):
 	if a is not None:
 		db.session.delete(a)
 		db.session.commit()
+
+
+#USER
+
+def deleteUser(id):
+	u = User.query.get(id)
+	if u is not None:
+		u.status=USER_STATUS['deleted']
+		db.session.commit()
+	return u
 
 
 
@@ -525,7 +545,8 @@ def disapprove_application(id):
 def admin():
 	all_applications = Application.query.all()
 	all_items = Item.query.filter(Item.status < 2)
-	return render_template("admin.html", all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
+	all_users = User.query.filter(User.status == 0)
+	return render_template("admin.html", all_users = all_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
 
 @app.route('/admin/item_status=<status>, item=<id>', methods=['GET', 'POST'])
 def item_status(id, status):
@@ -565,6 +586,15 @@ def edit_item(id):
 	editItem(id, json)
 	return redirect(request.referrer)
 
+@app.route('/user/<id>', methods=['GET','POST'])
+def user_info(id):
+	user = User.query.get(id)
+	return render_template('user.html', user = user)
+
+@app.route('/user/<id>/delete', methods=['GET','POST'])
+def user_delete(id):
+	deleteUser(id)
+	return redirect(request.referrer)
 #  ########  ##     ## ##    ## 
 #  ##     ## ##     ## ###   ## 
 #  ##     ## ##     ## ####  ## 

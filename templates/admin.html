@@ -28,7 +28,7 @@
 	    {% for application in all_applications %}
 	        <tr>
 	            <td><a href="/application/{{application.id}}" >{{application.id}}</a></td>
-	            <td>{{application.uid}}</td>
+	            <td><a href="/user/{{application.uid}}" >{{application.uid}}</a></td>
 	            <td>{{application.displayTimestamp()}}</td>
 	            <td>{{application.borrow_time.date()}}</td>
 	            <td>{{application.return_time.date()}}</td>
@@ -134,7 +134,7 @@
 	            <a href="/item/{{item.id}}/delete"><i class="fa fa-trash-o fa-fw"></i></a>
 	            <div id="{{item.id}}_edit" class="reveal-modal">
 	        <form class="custom" action="/item/{{item.id}}/edit" method="POST" id="itemEditForm">
-  <h2>Awesome. I have it.</h2>
+  <h2>Edit Item</h2>
 			
 				<div class="row">
 			      <div class="large-4 columns">
@@ -170,6 +170,73 @@
 
 
 
+	    {% endfor %}
+	    </tbody>
+	</table>
+</fieldset>
+
+
+<fieldset>
+<legend> Users </legend>
+
+	  <table width=100%>
+	    <thead>
+	        <tr>
+	          <th>ID</th>
+	          <th>NAME</th>
+	          <th>EMAIL</th>
+	          <th>ROLE</th>
+	          <th>WORK EMAIL</th>
+	          <th>APPLICATIONS</th>
+	          <th>ACTIONS</th>
+	        </tr>
+	    </thead>
+	    <tbody>
+	    {% for user in all_users %}
+	        <tr>
+	            <td><a href="/user/{{user.id}}" >{{user.id}}</a></td>
+	            <td>{{user.name}}</td>
+	            <td>{{user.email}}</td>
+	            {% if user.type == 'admin' %}
+	            <td>Admin</td>
+	            <td>{{user.work_email}}</td>
+	            {% else %}
+	            <td>User</td>
+	            <td>None</td>
+	            {% endif %}
+
+	            <td>{% for a in user.application %}
+	            	<a href="/application/{{a.id}}" >{{ a.id }}</a>, 
+	            	{% endfor %}
+
+	            </td>
+	            <td>
+	            	
+	<a href="/user/{{user.id}}/delete" ><i class="fa fa-trash-o fa-fw"></i></a>
+
+<div id="{{user.id}}_admin" class="reveal-modal">
+	        <form class="custom" action="/user/{{user.id}}/admin" method="POST" id="AdminForm">
+  <h2>Please provide work email</h2>
+			
+				<div class="row">
+			      <div class="large-8 columns">
+			        <label>Work Email</label>
+			        <input name="work_email" id="work_email" type="text">
+			      </div>
+			      
+			      <div class="large-4 columns">
+			      <label><br></label>
+			      <input class="small button" type="submit" value="Authorise"/>
+			      </div>	      
+			    </div>
+			</form>
+		</div>
+
+
+
+
+	            </td>
+	        </tr>
 	    {% endfor %}
 	    </tbody>
 	</table>

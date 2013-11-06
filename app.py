@@ -26,7 +26,7 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 #   ######   #######  ##    ##  ######     ##    ##     ## ##    ##    ##    
 
 #APP
-PORT = int(os.environ.get('PORT', 5000))
+
 SECRET_KEY = 'youshallnotpass'
 DEBUG = 'true'
 
@@ -56,12 +56,10 @@ SQLALCHEMY_RECORD_QUERIES = True
 app = Flask(__name__)
 app.debug = DEBUG
 app.secret_key = SECRET_KEY
-app.port = PORT
-app.host = '0.0.0.0'
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 
 #LOGIN
-oid = OpenID(app, '/path/to/store')
+oid = OpenID(os.path.join(basedir, 'tmp'))
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"

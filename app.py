@@ -69,8 +69,7 @@ login_manager.login_view = "login"
 #DATABASE
 
 db = SQLAlchemy(app)
-db.session.execute('PRAGMA foreign_keys=ON;')
-db.session.commit()
+
 
 STATUS = {
 	'available': 0,

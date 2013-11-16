@@ -232,7 +232,6 @@ class Item(db.Model):
 		reprs = (self.equipment.name, self.id)
 		return '<Item %r>' %(reprs,)
 
-
 class ItemApp(db.Model):
 	__tablename__ = 'itemapp'
 	aid = db.Column(db.Integer, db.ForeignKey('application.id', ondelete='CASCADE'), primary_key = True)
@@ -278,6 +277,14 @@ class Application(db.Model):
 			items.append(ia.items)
 		return items
 
+	def getItemsId(self):
+		items = self.getItems()
+		ids = []
+		for i in items:
+			ids.append(i.id)
+		return ids
+
+
 	def displayTimestamp(self):
 		return self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -321,12 +328,16 @@ def createItem(json):
 	db.session.commit()
 	return i
 
+def getItem(id):
+	i = Item.query.get(id)
+	return i
+
 def deleteItem(id):
 	i = changeItemStatus(id, STATUS['deleted'])
 	return i
 
 def editItem(id, json):
-	i = Item.query.get(id)
+	i = getItem(id)
 	if i is not None:
 		i.equipment.name = json['name']
 		i.equipment.category = json['category']
@@ -334,20 +345,20 @@ def editItem(id, json):
 		db.session.commit()
 
 def copyItem(id):
-	i = Item.query.get(id)
+	i = getItem(id)
 	if i is not None:
 		duplicate = Item(i.name, i.category, i.purchase_date)
 		db.session.add(duplicate)
 		db.session.commit()
 
 def changeItemStatus(id, status):
-	i = Item.query.get(id)
+	i = getItem(id)
 	if i is not None:
 		i.status = status
 		db.session.commit()
 
 def itemIfAvailable(id, borrow_time, return_time):
-	i = Item.query.get(id)
+	i = getItem(id)
 	item_app = i.item_app
 	for ia in item_app:
 		app = ia.application
@@ -399,6 +410,30 @@ def availabeItems(borrow_time, return_time):
 	return json
 
 
+def currentItems(application_id):
+	iids = getApplication(application_id).getItemsId()
+	json = {}
+
+	for iid in iids:
+		item = getItem(iid)
+		cat_name = CATEGORY_NAME[item.equipment.category]
+
+		if cat_name in json:
+			item_dict = json[cat_name]
+			if item.equipment.name in item_dict:
+				same_item_iids = item_dict[item.equipment.name]
+				if iid not in same_item_iids:
+					same_item_iids.append(iid)
+					same_item_iids.sort()
+			else:
+				item_dict[item.equipment.name] = [iid]
+		else:
+			json[cat_name] = {
+				item.equipment.name: [iid]
+			}
+
+	return json
+
 
 # APPLICATION
 
@@ -420,6 +455,63 @@ def makeApplication(json):
 		db.session.add(item_app)
 	db.session.commit()	
 	return a
+
+def jsonApplication(id):
+	app = getApplication(id)
+	app_json = {
+		'uid': app.uid,
+		'items': app.getItemsId(),
+		'borrow_time':app.borrow_time,
+		'return_time':app.return_time
+	}
+	return app_json
+
+def showPossibleEdit(id):
+	app_json = jsonApplication(id)
+	available_items_json = availabeItems(app_json['borrow_time'], app_json['return_time'])
+	selected_iids = app_json['items']
+	for iid in selected_iids:
+		item = getItem(iid)
+		cat_name = CATEGORY_NAME[item.equipment.category]
+
+		if cat_name in available_items_json:
+			item_dict = available_items_json[cat_name]
+			if item.equipment.name in item_dict:
+				same_item_iids = item_dict[item.equipment.name]
+				if iid not in same_item_iids:
+					same_item_iids.append(iid)
+					same_item_iids.sort()
+			else:
+				item_dict[item.equipment.name] = [iid]
+		else:
+			available_items_json[cat_name] = {
+				item.equipment.name: [iid]
+			}
+	return available_items_json
+
+def showDefaultSelect(id):
+	app_json = jsonApplication(id)
+	current_items = currentItems(id).items()
+	available_items_json = availabeItems(app_json['borrow_time'], app_json['return_time'])
+	json = {}
+	available_items = available_items_json.items()
+	for cat in available_items:
+		json[cat[0]] = {}
+		for i in cat[1].items():
+			json[cat[0]][i[0]] = 0
+
+	for cat in current_items:
+		if cat[0] in json:
+			for i in cat[1].items():
+				json[cat[0]][i[0]] = len(i[1])
+		else:
+			json[cat[0]] = {}
+			for i in cat[1].items():
+				json[cat[0]][i[0]] = len(i[1])
+
+	return json
+
+
 
 def editApplication(id, json):
 	a = Application.query.get(id)
@@ -619,9 +711,6 @@ def make_application_step3():
 			if len(value) > 0:
 				items[key] = len(value)
 				selected_items.extend(value)
-	
-
-	print items
 
 	app_json = {
 		'uid': g.user.id,
@@ -644,6 +733,42 @@ def make_application():
 	application = makeApplication(app_json)
 	id = application.id
 	return redirect("/application/"+str(id))
+
+@app.route('/application/<id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_application(id):
+	session['redirect'] = request.referrer
+	print session['redirect']
+	available_items = showPossibleEdit(id)
+	current_items = currentItems(id)
+	default_select = showDefaultSelect(id)
+	return render_template("edit_application.html", id=id, default_select = default_select, current_items = current_items, available_items=available_items)
+
+@app.route('/application/<id>/edit/process', methods=['GET', 'POST'])
+def edit_application_process(id):
+	
+	app_json = jsonApplication(id)
+
+	selected_items = []
+	selected = request.form
+
+	items = {}
+
+	for key in selected.keys():
+		for value in selected.getlist(key):
+			value = ast.literal_eval(value)
+			if len(value) > 0:
+				items[key] = len(value)
+				selected_items.extend(value)
+
+	app_json['items'] = selected_items
+
+	editApplication(id, app_json)
+
+
+	return redirect(session['redirect'])
+
+
 
 @app.route('/application/<id>', methods = ['GET', 'POST'])
 @login_required
@@ -677,7 +802,7 @@ def admin():
 		return redirect(url_for('not_authorized'))
 	else:
 		all_applications = Application.query.all()
-		all_items = Item.query.filter(Item.status < 2)
+		all_items = Item.query.filter(Item.status <= 2)
 		all_users = User.query.filter(User.status == 0)
 		return render_template("admin.html", all_users = all_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
 
@@ -777,4 +902,4 @@ def internal_error(error):
 #  ##    ##  ##     ## ##   ### 
 #  ##     ##  #######  ##    ## 
 
-#app.run(debug=True)
+app.run(debug=True)

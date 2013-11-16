@@ -43,6 +43,7 @@
 </ul>
 </fieldset>
 
+
 <fieldset>
 <legend>Action</legend>
 
@@ -50,18 +51,22 @@
 <div class="small-5 columns">
 {% if g.user.isAdmin() %}
 	{% if application.isApproved() == True %}
-	<a href="/application/{{application.id}}/disapprove" class="small success button">Disapprove</a>
+	<a href="/application/{{application.id}}/disapprove" class="small success button"><i class="fa fa-undo fa-fw"></i> Disapprove</a>
 	{% else %}
-	<a href="/application/{{application.id}}/approve" class="small success button">Approve</a>
+	<a href="/application/{{application.id}}/approve" class="small success button"><i class="fa fa-check fa-fw"></i> Approve</a>
 	{% endif %}
 {% endif %}	
-	<a href="/application/{{application.id}}/delete" class="small alert button">Delete</a>
-
-
-
-
+	{% if g.user == application.applicant %}
+	<a href="/application/{{application.id}}/edit" class="small button"><i class="fa fa-pencil-square-o fa-fw"></i> Edit</a>
+	<a href="/application/{{application.id}}/delete" class="small alert button"><i class="fa fa-trash-o fa-fw"></i> Delete</a>
+	{% endif %}
 
 </div>
+
+
+
+
+
 
 </fieldset>
 

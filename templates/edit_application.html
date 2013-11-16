@@ -1,14 +1,14 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h3>Make an Application</h3>
+<h3>Edit your application</h3>
 <h5 class="subheader">Step 2 out of 3</h5><div class="progress small-4"><span class="meter" style="width:50%"></span></div>
 
 <fieldset>
 <legend>Available Items</legend>
 
 
-<form class="custom" action="{{ url_for('make_application_step3')}}" method="POST" id="itemForm">
+<form class="custom" action="{{ url_for('edit_application_process',id=id) }}" method="POST" id="itemForm">
 
 {% for category in available_items.items() %}
 <div class="row">
@@ -21,16 +21,26 @@
 	{% for equipment in category[1].items() %}
 	<div class="row">
 	<div class="small-3 columns">
-		<label for="{{equipment[0]}}" name="{{equipment[0]}}" class="right inline">{{equipment[0]}}</label>
+	{% set default = default_select[category[0]][equipment[0]] %}
+	<label for="{{equipment[0]}}" name="{{equipment[0]}}" class="right inline">{{equipment[0]}}</label>
 	</div>
 	<div class="small-3 columns">
 		<select id="{{equipment[0]}}" name="{{equipment[0]}}" class="medium">
 
 			{% for choose in range(0, equipment[1]|count + 1) %}
 
+			{% if choose == default %}
+
+				<option value = "{{equipment[1][:choose]}}" selected>{{choose}}</option>
+
+			{% else %}
+
 				<option value = "{{equipment[1][:choose]}}">{{choose}}</option>
+
+			{% endif %}
 				
 			{% endfor %}
+			
 		</select>
 		</div>
 	</div>

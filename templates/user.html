@@ -51,7 +51,13 @@
 	        </div>
 	        {% if g.user == user %}
 	        <div class="small-3 columns">
-	        <a href="/application/{{application.id}}/delete" ><p><i class="fa fa-trash-o fa-fw"></i></p></a>
+	        {% if application.isApproved() %}
+	        <a href="/application/{{application.id}}/edit" ><i class="fa fa-pencil-square-o fa-fw"></i></a>
+	        {% else %}
+	        <a href="#" ><i class="fa fa-fw"></i></a>
+	        {% endif %}
+	        <a href="/application/{{application.id}}/delete" ><i class="fa fa-trash-o fa-fw"></i></a>
+	        
 	        </div>
 	        {% endif %}
 	        </div>
@@ -75,7 +81,7 @@
 	<a href="#" data-reveal-id="{{user.id}}_edit"  class="small button">Edit Profile</a>	           
 	            <div id="{{user.id}}_edit" class="reveal-modal">
 	        <form class="custom" action="/user/{{user.id}}/edit" method="POST" id="itemEditForm">
-  <h2>Edit Item</h2>
+  <h2>Edit Profile</h2>
 			
 				<div class="row">
 			      <div class="large-4 columns">

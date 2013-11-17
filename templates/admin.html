@@ -109,24 +109,24 @@
 	    </thead>
 	    <tbody>
 	    {% for item in all_items %}
+	    {%set iid = item.id%} 
 	        <tr>
-	            <td id="{{item.id}}_id">{{item.id}}</td>
-	            <td id="{{item.id}}_name">{{item.equipment.name}}</td>
-	            <td id="{{item.id}}_category">{{item.equipment.printCategory()}}</td>
-	            <td id="{{item.id}}_purchase_date">{{item.purchase_date.date()}}</td>
+	            <td id="{{iid}}_id">{{item.id}}</td>
+	            <td id="{{iid}}_name">{{item.equipment.name}}</td>
+	            <td id="{{iid}}_category">{{item.equipment.printCategory()}}</td>
+	            <td id="{{iid}}_purchase_date">{{item.purchase_date.date()}}</td>
 	            <td>
 	            	{% if item.status == 0 %}
-	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-circle fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	<a href="#" data-dropdown="{{iid}}_status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-circle fa-fw"></i> {{item.printStatus()}} </a><br>
 	            	{% elif item.status == 1 %}
-	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left;margin-bottom:0px"><i class="fa fa-circle-o fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	<a href="#" data-dropdown="{{iid}}_status" class="tiny secondary button dropdown" style="width:11em; text-align:left;margin-bottom:0px"><i class="fa fa-circle-o fa-fw"></i> {{item.printStatus()}} </a><br>
 	            	{% else %}
-	            	<a href="#" data-dropdown="status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-minus-circle fa-fw"></i> {{item.printStatus()}} </a><br>
+	            	<a href="#" data-dropdown="{{iid}}_status" class="tiny secondary button dropdown" style="width:11em; text-align:left; margin-bottom:0px"><i class="fa fa-minus-circle fa-fw"></i> {{item.printStatus()}} </a><br>
 	            	{% endif %}
-
-					<ul id="status" class="f-dropdown">
-					  <li><a href="{{url_for('item_status', id=item.id, status=0)}}"><i class="fa fa-circle fa-fw"></i> Available</a></li>
-					  <li><a href="{{url_for('item_status', id=item.id, status=1)}}"><i class="fa fa-circle-o fa-fw"></i> Borrowed</a></li>
-					  <li><a href="{{url_for('item_status', id=item.id, status=2)}}"><i class="fa fa-minus-circle fa-fw"></i> Not Available</a></li>
+					<ul id="{{iid}}_status" class="f-dropdown">
+					  <li><a href="{{url_for('item_status', id=iid, status=0)}}"><i class="fa fa-circle fa-fw"></i>  Available</a></li>
+					  <li><a href="{{url_for('item_status', id=iid, status=1)}}"><i class="fa fa-circle-o fa-fw"></i> Borrowed</a></li>
+					  <li><a href="{{url_for('item_status', id=iid, status=2)}}"><i class="fa fa-minus-circle fa-fw"></i> Not Available</a></li>
 					</ul>
 	            </td>
 

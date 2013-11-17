@@ -656,7 +656,8 @@ def create_profile():
 			flash(u'Error: you have to enter a valid email address')
 		else:
 			flash(u'Profile successfully created')
-			createUser(name, email)
+			u = createUser(name, email)
+			login_user(u)
 			return redirect(oid.get_next_url())
 	return render_template('create_profile.html', next_url=oid.get_next_url())
 

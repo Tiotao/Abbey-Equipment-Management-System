@@ -288,6 +288,9 @@ class Application(db.Model):
 	def displayTimestamp(self):
 		return self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
+	def displayDatestamp(self):
+		return self.timestamp.strftime('%Y-%m-%d')
+
 	def __repr__(self):
 		return '<Application %r>' %(self.id)
 
@@ -630,10 +633,7 @@ def login():
 @oid.after_login
 def create_or_login(resp):
     session['openid'] = resp.identity_url
-    print resp.email
-    print resp.identity_url
     user = User.query.filter_by(email=resp.email).first()
-    print user
     if user is not None:
         flash(u'Successfully signed in')
         login_user(user)

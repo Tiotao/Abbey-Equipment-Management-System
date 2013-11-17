@@ -1,3 +1,9 @@
 button datepicker-close small alert right {
 	display: none;
 }
+
+.item-list{
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+}

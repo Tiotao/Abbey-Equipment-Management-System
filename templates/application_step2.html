@@ -7,7 +7,7 @@
 <fieldset>
 <legend>Available Items</legend>
 
-
+<input type="text" id="search" placeholder="Type to search">
 <form class="custom" action="{{ url_for('make_application_step3')}}" method="POST" id="itemForm">
 
 {% for category in available_items.items() %}
@@ -44,6 +44,19 @@
 </div>
 </div>
 </form>
+
+<script>
+var $rows = $('form .row div .row');
+$('#search').keyup(function () {
+    var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
+
+    $rows.show().filter(function () {
+        var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
+        return !~text.indexOf(val);
+    }).hide();
+});
+</script>
+
 </fieldset>
 
 {% endblock %}

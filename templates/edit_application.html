@@ -9,7 +9,7 @@
 <legend>Available Items</legend>
 
 
-<form class="custom" action="{{ url_for('edit_application_process',id=id) }}" method="POST" id="itemForm">
+<form class="custom" action="{{ url_for('edit_application_process',id=id) }}" method="POST" id="itemForm" onsubmit="return(validateForm())">
 
 {% for category in available_items.items() %}
 <div class="row">
@@ -56,6 +56,23 @@
 </div>
 </form>
 </fieldset>
+
+<script>
+function validateForm()
+{
+
+var selects = document.querySelectorAll(".current");
+
+	for (var i=0; i<selects.length; i++){
+		if (selects[i].text > 0){
+	   	 	return true;
+	    }
+	}
+	alert("Please select at least one item！")
+	
+return false;
+}
+</script>
 
 {% endblock %}
 

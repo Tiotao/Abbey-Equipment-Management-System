@@ -2,23 +2,33 @@
 {% block content %}
 
 <h3>Make an Application</h3>
+
+<h1 class="subheader" style="text-align:right">
+				<span data-tooltip class="has-tip" title="Add an Application"><a href="{{url_for('make_application_step1')}}"> <i class="fa fa-plus fa-fw"></i></a></span>
+				{% if g.user.isAdmin() %}
+			<span data-tooltip class="has-tip" title="Admin Panel"><a href="{{url_for('admin')}}"> <i class="fa fa-tachometer fa-fw"></i></a></span>
+			{% endif %}
+			<span data-tooltip class="has-tip" title="My Profile"><a href="/user/{{g.user.id}}"> <i class="fa fa fa-user fa-fw"></i></a></span>
+
+			<span data-tooltip class="has-tip" title="Sign out"><a href="{{url_for('logout')}}"> <i class="fa fa fa-sign-out fa-fw"></i></a></span>
+					</h1>
 <h5 class="subheader">Step 1 out of 3</h5><div class="progress small-4"><span class="meter" style="width:10%"></span></div>
 <fieldset>
 	<legend>Prefered Date</legend>
-			<form action="{{ url_for('make_application_step2')}}" method="POST" id="dateForm">
+			<form action="{{ url_for('make_application_step2')}}" method="POST" id="dateForm" onsubmit="return validateForm()">
 			<div class="row">
 
 				<div class="small-2 columns">
 					 <label class="right inline">Borrow Date:</label>
 				</div>
 				<div class="small-3 columns">
-					<input type="text" value="" id="borrow_time" name = "borrow_time" placeholder="Borrow Time"/>
+					<input type="text" value="" id="borrow_time" name = "borrow_time" placeholder="Borrow Time" readonly />
 				</div>
 				<div class="small-2 columns">
 				 <label class="right inline">Return Date:</label>
 				</div>
 				<div class="small-3 columns">
-					<input type="text" value="" id="return_time" name="return_time" placeholder="Return Time"/>
+					<input type="text" value="" id="return_time" name="return_time" placeholder="Return Time" readonly/>
 				</div>
 				<div class="small-2 columns">
 					<input class="small button" type="submit" value="Check"/>
@@ -56,7 +66,29 @@
 				}).on('changeDate', function (ev) {
 					checkout.hide();
 				}).data('datepicker');
+			
+
 				
+
+			</script>
+
+			<script>
+			function validateForm()
+				{
+
+						var begin = $("#borrow_time").val().split("/");
+						var b = new Date(begin[2], begin[1] - 1, begin[0]);
+						var end = $("#return_time").val().split("/");
+						var e = new Date(end[2], end[1] - 1, end[0]);
+						
+						if(e > b && e !== null && b !== null){
+							return true;
+						}else{
+							alert("Please enter the correct date！")
+							return false;
+						}
+
+				}
 			</script>
  
 {% endblock %}

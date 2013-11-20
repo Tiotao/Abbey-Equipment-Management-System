@@ -7,11 +7,27 @@
   <form action="" method=post>
   <div class="row">
   <div class="small-12 columns">
-  {% if error %}<p class=error><strong>Error:</strong> {{ error }}</p>{% endif %}
   </div>
   </div>
   <div class="row">
    
+  {% if error %}
+  <div class="small-3 columns">
+  <label for="right-label" class="right inline error">OpenID:</label>
+      </div>
+      <div class="small-5 columns">
+      <input id="right-label" class="error" type=text name=openid size=30>
+      <small class="error">{{ error }}</small>
+      </div>
+      <div class="small-3 columns">
+      <input type=submit class="small button" value="Sign in">
+      </div>
+      <input type=hidden name=next value="{{ next }}">
+
+</div>
+
+{% else %}
+
   <div class="small-3 columns">
   <label for="right-label" class="right inline">OpenID:</label>
       </div>
@@ -24,6 +40,10 @@
       <input type=hidden name=next value="{{ next }}">
 
 </div>
+
+
+{% endif %}
+
   </form>
   </div>
   

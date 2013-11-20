@@ -1,12 +1,24 @@
 {% extends "layout.html" %}
+
 {% block content %}
 
 <h3>Admin Panel</h3>
+<h1 class="subheader" style="text-align:right">
+				<span data-tooltip class="has-tip" title="Add an Application"><a href="{{url_for('make_application_step1')}}"> <i class="fa fa-plus fa-fw"></i></a></span>
+				{% if g.user.isAdmin() %}
+			<span data-tooltip class="has-tip" title="Admin Panel"><a href="{{url_for('admin')}}"> <i class="fa fa-tachometer fa-fw"></i></a></span>
+			{% endif %}
+			<span data-tooltip class="has-tip" title="My Profile"><a href="/user/{{g.user.id}}"> <i class="fa fa fa-user fa-fw"></i></a></span>
 
-<fieldset>
-<legend> Applications </legend>
-	
-	<div class="row">
+			<span data-tooltip class="has-tip" title="Sign out"><a href="{{url_for('logout')}}"> <i class="fa fa fa-sign-out fa-fw"></i></a></span>
+					</h1>
+
+
+<div class="section-container auto" data-section>
+  <section class="active">
+    <p class="title" data-section-title><a href="#panel1">Applications</a></p>
+    <div class="content" data-section-content>
+      	<div class="row">
 		<div class="small-12 columns">
 		<a href="{{url_for('make_application_step1')}}" class="small button"> <i class="fa fa-plus"></i> Add an Application</a>
 		</div>
@@ -57,13 +69,14 @@
 	    {% endfor %}
 	    </tbody>
 	</table>
-</fieldset>
-
-<fieldset>
-<legend> Items </legend>
-	<fieldset>
+    </div>
+  </section>
+  <section>
+    <p class="title" data-section-title><a href="#panel2">Items</a></p>
+    <div class="content" data-section-content>
+      <fieldset>
 	<legend>Add an Item</legend>
-			<form class="custom" action="{{ url_for('add_item')}}" method="POST" id="itemForm">
+			<form class="custom" action="{{ url_for('add_item')}}" method="POST" id="itemForm" name="itemForm" onsubmit="return validateForm()">
 			<div class="row">
 		      <div class="large-4 columns">
 		        <label>Name</label>
@@ -86,7 +99,7 @@
 		      </div>
 		      <div class="large-3 columns">
 		        <label>Purchased Date</label>
-		        <input type="text" value="" id="purchase_date" name = "purchase_date" placeholder="01/01/2014"/>
+		        <input type="text" value="" id="purchase_date" name = "purchase_date" placeholder="01/01/2014" readonly/>
 		      </div>
 		      <div class="large-2 columns">
 		      <label><br></label>
@@ -134,7 +147,7 @@
 	            <a href="#" data-reveal-id="{{item.id}}_edit" ><i class="fa fa-pencil-square-o fa-fw"></i></a>
 	            <a href="/item/{{item.id}}/delete"><i class="fa fa-trash-o fa-fw"></i></a>
 	            <div id="{{item.id}}_edit" class="reveal-modal">
-	        <form class="custom" action="/item/{{item.id}}/edit" method="POST" id="itemEditForm">
+	        <form class="custom" action="/item/{{item.id}}/edit" method="POST" name="itemEditForm" id="itemEditForm">
   <h2>Edit Item</h2>
 			
 				<div class="row">
@@ -156,7 +169,7 @@
 			      </div>
 			      <div class="large-3 columns">
 			        <label>Purchased Date</label>
-			        <input type="text" value="{{item.purchase_date.strftime('%d/%m/%Y')}}" id="purchase_date_edit" name = "purchase_date_edit" placeholder="01/01/2014"/>
+			        <input type="text" value="{{item.purchase_date.strftime('%d/%m/%Y')}}" id="purchase_date_edit" name = "purchase_date_edit" placeholder="01/01/2014" readonly/>
 			      </div>
 			      <div class="large-2 columns">
 			      <label><br></label>
@@ -164,7 +177,11 @@
 			      </div>	      
 			    </div>
 			</form>
+			<script>
+			
+    </script>
 		</div>
+
 	            </td>
 	        </tr>
 
@@ -174,13 +191,38 @@
 	    {% endfor %}
 	    </tbody>
 	</table>
-</fieldset>
+    </div>
+
+    <script>
+    function validateForm()
+{
+
+	
+var y=document.itemForm.name;
+var x=document.itemForm.purchase_date;
 
 
-<fieldset>
-<legend> Users </legend>
 
-	  <table width=100%>
+if(y.value===null || y.value===""){
+  	alert("Item name must be filled out");
+  	y.focus();
+  	return false;
+
+}else if (x.value===null || x.value==="")
+  {
+  	alert("Purchased Date must be filled out in correct format");
+  	x.focus();
+  	return false;
+  
+  }
+}
+
+    </script>
+  </section>
+    <section>
+    <p class="title" data-section-title><a href="#panel3">Users</a></p>
+    <div class="content" data-section-content>
+      <table width=100%>
 	    <thead>
 	        <tr>
 	          <th>ID</th>
@@ -212,19 +254,68 @@
 
 	            </td>
 	            <td>
-	            	
-	<a href="/user/{{user.id}}/delete" ><i class="fa fa-trash-o fa-fw"></i></a>
 
-
-
-
+<a href="/user/{{user.id}}/delete" ><i class="fa fa-trash-o fa-fw"></i></a>
 
 	            </td>
 	        </tr>
 	    {% endfor %}
 	    </tbody>
 	</table>
-</fieldset>
+    </div>
+  </section>
+    <section>
+    <p class="title" data-section-title><a href="#panel4">Deleted Users</a></p>
+    <div class="content" data-section-content>
+       <table width=100%>
+	    <thead>
+	        <tr>
+	          <th>ID</th>
+	          <th>NAME</th>
+	          <th>EMAIL</th>
+	          <th>ROLE</th>
+	          <th>WORK EMAIL</th>
+	          <th>APPLICATIONS</th>
+	          <th>ACTIONS</th>
+	        </tr>
+	    </thead>
+	    <tbody>
+	    {% for user in deleted_users %}
+	        <tr>
+	            <td><a href="/user/{{user.id}}" >{{user.id}}</a></td>
+	            <td>{{user.name}}</td>
+	            <td>{{user.email}}</td>
+	            {% if user.type == 'admin' %}
+	            <td>Admin</td>
+	            <td>{{user.work_email}}</td>
+	            {% else %}
+	            <td>User</td>
+	            <td>None</td>
+	            {% endif %}
+
+	            <td>{% for a in user.application %}
+	            	<a href="/application/{{a.id}}" >{{ a.id }}</a>, 
+	            	{% endfor %}
+
+	            </td>
+	            <td>
+	            <a href="/user/{{user.id}}/recover" ><i class="fa fa-undo fa-fw"></i></a>
+	            </td>
+	        </tr>
+	    {% endfor %}
+	    </tbody>
+	</table>
+    </div>
+  </section>
+    <section>
+    <p class="title" data-section-title><a href="#panel5">Section 2</a></p>
+    <div class="content" data-section-content>
+      <p>Content of section 2.</p>
+    </div>
+  </section>
+</div>
+
+
 
 <script>
 $('#purchase_date').fdatepicker({

@@ -2,7 +2,15 @@
 {% block content %}
 
 <h3>{{user.name}}</h3>
+<h1 class="subheader" style="text-align:right">
+				<span data-tooltip class="has-tip" title="Add an Application"><a href="{{url_for('make_application_step1')}}"> <i class="fa fa-plus fa-fw"></i></a></span>
+				{% if g.user.isAdmin() %}
+			<span data-tooltip class="has-tip" title="Admin Panel"><a href="{{url_for('admin')}}"> <i class="fa fa-tachometer fa-fw"></i></a></span>
+			{% endif %}
+			<span data-tooltip class="has-tip" title="My Profile"><a href="/user/{{g.user.id}}"> <i class="fa fa fa-user fa-fw"></i></a></span>
 
+			<span data-tooltip class="has-tip" title="Sign out"><a href="{{url_for('logout')}}"> <i class="fa fa fa-sign-out fa-fw"></i></a></span>
+					</h1>
 <div class="panel">
 
 <div class="row">

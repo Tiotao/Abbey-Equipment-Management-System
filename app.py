@@ -185,7 +185,7 @@ class Equipment(db.Model):
 	def availableItems(self):
 		available_items = []
 		for i in self.items:
-			if i.status == STATUS['available']:
+			if i.status == STATUS['available'] and i.purchase_date <= datetime.utcnow():
 				available_items.append(i)
 		return available_items
 
@@ -214,6 +214,8 @@ class Item(db.Model):
 			db.session.add(Equipment(name, category))
 			db.session.commit()
 		e = Equipment.query.filter_by(name=name).first()
+		if purchase_date > datetime.utcnow():
+			self.status = STATUS['unavailable']
 		self.eid = e.id
 		self.purchase_date = purchase_date
 		self.category = e.category
@@ -591,6 +593,13 @@ def deleteUser(id):
 		db.session.commit()
 	return u
 
+def recoverUser(id):
+	u = User.query.get(id)
+	if u is not None:
+		u.status=USER_STATUS['normal']
+		db.session.commit()
+	return u
+
 def editUser(id, json):
 	u = User.query.get(id)
 	if u is not None:
@@ -804,8 +813,9 @@ def admin():
 	else:
 		all_applications = Application.query.all()
 		all_items = Item.query.filter(Item.status <= 2)
+		deleted_users = User.query.filter(User.status == 1)
 		all_users = User.query.filter(User.status == 0)
-		return render_template("admin.html", all_users = all_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
+		return render_template("admin.html", all_users = all_users, deleted_users=deleted_users, all_applications = all_applications, all_items = all_items, category=CATEGORY, category_name=CATEGORY_NAME)
 
 @app.route('/admin/item_status=<status>, item=<id>', methods=['GET', 'POST'])
 @login_required
@@ -864,6 +874,12 @@ def user_delete(id):
 	deleteUser(id)
 	return redirect(request.referrer)
 
+@app.route('/user/<id>/recover', methods=['GET','POST'])
+@login_required
+def user_recover(id):
+	recoverUser(id)
+	return redirect(request.referrer)
+
 @app.route('/user/<id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_user(id):
@@ -903,4 +919,4 @@ def internal_error(error):
 #  ##    ##  ##     ## ##   ### 
 #  ##     ##  #######  ##    ## 
 
-#app.run(debug=True)
+app.run(debug=True)
